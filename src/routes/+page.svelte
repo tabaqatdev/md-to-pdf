@@ -31,7 +31,7 @@
   let showSettings = $state(false);
   let editorContent = $state("");
   let isDragging = $state(false);
-  let viewMode = $state<"edit" | "preview">("edit");
+  let viewMode = $state<"edit-only" | "split" | "preview-only">("split");
 
   // Resizable panel state
   let editorWidthPercent = $state(50); // 50% default
@@ -83,8 +83,8 @@
     i18n.setLanguage(i18n.language === "en" ? "ar" : "en");
   }
 
-  function toggleViewMode() {
-    viewMode = viewMode === "edit" ? "preview" : "edit";
+  function setViewMode(mode: "edit-only" | "split" | "preview-only") {
+    viewMode = mode;
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -276,21 +276,38 @@
 
       <Separator orientation="vertical" class="h-6 md:hidden" />
 
-      <!-- View Mode Toggle -->
-      <Button
-        variant={viewMode === "edit" ? "default" : "ghost"}
-        size="icon"
-        onclick={toggleViewMode}
-        title={viewMode === "edit" ? "Preview Mode" : "Edit Mode"}
-      >
-        {#if viewMode === "edit"}
-          <Eye class="h-4 w-4" />
-        {:else}
+      <!-- View Mode Toggle Group -->
+      <div class="flex gap-1 items-center">
+        <Button
+          variant={viewMode === "edit-only" ? "default" : "ghost"}
+          size="sm"
+          onclick={() => setViewMode("edit-only")}
+          title="Edit Only"
+        >
           <Code2 class="h-4 w-4" />
-        {/if}
-      </Button>
+        </Button>
+        <Button
+          variant={viewMode === "split" ? "default" : "ghost"}
+          size="sm"
+          onclick={() => setViewMode("split")}
+          title="Split View"
+        >
+          <div class="flex gap-0.5">
+            <Code2 class="h-3 w-3" />
+            <Eye class="h-3 w-3" />
+          </div>
+        </Button>
+        <Button
+          variant={viewMode === "preview-only" ? "default" : "ghost"}
+          size="sm"
+          onclick={() => setViewMode("preview-only")}
+          title="Preview Only"
+        >
+          <Eye class="h-4 w-4" />
+        </Button>
+      </div>
 
-      <Separator orientation="vertical" class="h-6" />
+      <Separator orientation="vertical" class="h-6" />>
 
       <Button
         variant="ghost"
@@ -362,68 +379,79 @@
       </aside>
     {/if}
 
-    <!-- Editor and Preview - Desktop: side by side, Mobile: toggle -->
+    <!-- Editor and Preview - Support for 3 view modes -->
     <div
       bind:this={containerRef}
       class="editor-preview-container relative flex flex-1 overflow-hidden print:overflow-visible! print:h-auto! print:block!"
     >
-      <!-- Editor/Preview Pane -->
-      <div
-        class="editor-pane h-full overflow-hidden print:hidden!"
-        class:mobile-hidden={mobileView !== "editor"}
-        style="--editor-width: {editorWidthPercent}%;"
-      >
-        {#if filesStore.currentFile}
-          {#if viewMode === "edit"}
-            <!-- Edit Mode: CodeMirror Editor -->
+      {#if filesStore.currentFile}
+        <!-- Edit Only Mode -->
+        {#if viewMode === "edit-only"}
+          <div class="editor-pane h-full w-full overflow-hidden print:hidden!">
             <MarkdownEditor
               content={editorContent}
               onchange={handleContentChange}
             />
-          {:else}
-            <!-- Preview Mode: Rendered Markdown (will add inline editing later) -->
-            <div class="h-full overflow-auto p-6">
-              <MarkdownPreview content={editorContent} />
-            </div>
-          {/if}
-        {:else}
+          </div>
+
+          <!-- Split View Mode -->
+        {:else if viewMode === "split"}
+          <!-- Editor Pane (Left) -->
           <div
-            class="flex h-full items-center justify-center text-muted-foreground"
+            class="editor-pane h-full overflow-hidden print:hidden!"
+            class:mobile-hidden={mobileView !== "editor"}
+            style="--editor-width: {editorWidthPercent}%;"
           >
-            <div class="text-center">
-              <p class="mb-2 text-lg">{i18n.t.app.title}</p>
-              <p class="text-sm">{i18n.t.sidebar.noFiles}</p>
-              <Button variant="outline" class="mt-4" onclick={handleNewFile}>
-                <FilePlus class="me-2 h-4 w-4" />
-                {i18n.t.sidebar.newFile}
-              </Button>
-            </div>
+            <MarkdownEditor
+              content={editorContent}
+              onchange={handleContentChange}
+            />
+          </div>
+
+          <!-- Resizable Divider -->
+          <div
+            class="resize-handle no-print"
+            onmousedown={handleResizeStart}
+            ontouchstart={handleResizeStart}
+            ondblclick={handleResizeReset}
+            role="separator"
+            aria-orientation="vertical"
+            aria-valuenow={editorWidthPercent}
+            tabindex="0"
+          >
+            <div class="resize-handle-bar"></div>
+          </div>
+
+          <!-- Preview Pane (Right) -->
+          <div
+            class="preview-pane h-full overflow-hidden border-s border-border print:overflow-visible! print:h-auto! print:block! print:w-full!"
+            class:mobile-hidden={mobileView !== "preview"}
+            style="--preview-width: {100 - editorWidthPercent}%;"
+          >
+            <MarkdownPreview content={editorContent} />
+          </div>
+
+          <!-- Preview Only Mode -->
+        {:else}
+          <div class="preview-pane h-full w-full overflow-auto p-6">
+            <MarkdownPreview content={editorContent} />
           </div>
         {/if}
-      </div>
-
-      <!-- Resizable Divider - hidden on mobile -->
-      <div
-        class="resize-handle no-print"
-        onmousedown={handleResizeStart}
-        ontouchstart={handleResizeStart}
-        ondblclick={handleResizeReset}
-        role="separator"
-        aria-orientation="vertical"
-        aria-valuenow={editorWidthPercent}
-        tabindex="0"
-      >
-        <div class="resize-handle-bar"></div>
-      </div>
-
-      <!-- Preview Pane -->
-      <div
-        class="preview-pane h-full overflow-hidden border-s border-border print:overflow-visible! print:h-auto! print:block! print:w-full!"
-        class:mobile-hidden={mobileView !== "preview"}
-        style="--preview-width: {100 - editorWidthPercent}%;"
-      >
-        <MarkdownPreview content={editorContent} />
-      </div>
+      {:else}
+        <!-- No file open -->
+        <div
+          class="flex h-full items-center justify-center text-muted-foreground"
+        >
+          <div class="text-center">
+            <p class="mb-2 text-lg">{i18n.t.app.title}</p>
+            <p class="text-sm">{i18n.t.sidebar.noFiles}</p>
+            <Button variant="outline" class="mt-4" onclick={handleNewFile}>
+              <FilePlus class="me-2 h-4 w-4" />
+              {i18n.t.sidebar.newFile}
+            </Button>
+          </div>
+        </div>
+      {/if}
     </div>
   </main>
 </div>
