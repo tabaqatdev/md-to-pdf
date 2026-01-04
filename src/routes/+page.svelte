@@ -387,7 +387,7 @@
       {#if filesStore.currentFile}
         <!-- Edit Only Mode -->
         {#if viewMode === "edit-only"}
-          <div class="editor-pane h-full w-full overflow-hidden print:hidden!">
+          <div class="h-full w-full overflow-hidden print:hidden!">
             <MarkdownEditor
               content={editorContent}
               onchange={handleContentChange}
@@ -433,7 +433,7 @@
 
           <!-- Preview Only Mode -->
         {:else}
-          <div class="preview-pane h-full w-full overflow-auto p-6">
+          <div class="h-full w-full overflow-auto p-6">
             <MarkdownPreview content={editorContent} />
           </div>
         {/if}
