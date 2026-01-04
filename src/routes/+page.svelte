@@ -8,6 +8,7 @@
   import MarkdownPreview from "$lib/components/preview/MarkdownPreview.svelte";
   import SelectablePreview from "$lib/components/preview/SelectablePreview.svelte";
   import SettingsModal from "$lib/components/settings/SettingsModal.svelte";
+  import TableEditor from "$lib/components/editor/TableEditor.svelte";
   import Button from "$lib/components/ui/button.svelte";
   import Separator from "$lib/components/ui/separator.svelte";
   import {
