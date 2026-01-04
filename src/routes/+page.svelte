@@ -31,6 +31,7 @@
   let showSettings = $state(false);
   let editorContent = $state("");
   let isDragging = $state(false);
+  let viewMode = $state<"edit" | "preview">("edit");
 
   // Resizable panel state
   let editorWidthPercent = $state(50); // 50% default
@@ -80,6 +81,10 @@
 
   function toggleLanguage() {
     i18n.setLanguage(i18n.language === "en" ? "ar" : "en");
+  }
+
+  function toggleViewMode() {
+    viewMode = viewMode === "edit" ? "preview" : "edit";
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -271,11 +276,27 @@
 
       <Separator orientation="vertical" class="h-6 md:hidden" />
 
+      <!-- View Mode Toggle -->
+      <Button
+        variant={viewMode === "edit" ? "default" : "ghost"}
+        size="icon"
+        onclick={toggleViewMode}
+        title={viewMode === "edit" ? "Preview Mode" : "Edit Mode"}
+      >
+        {#if viewMode === "edit"}
+          <Eye class="h-4 w-4" />
+        {:else}
+          <Code2 class="h-4 w-4" />
+        {/if}
+      </Button>
+
+      <Separator orientation="vertical" class="h-6" />
+
       <Button
         variant="ghost"
         size="icon"
         onclick={toggleLanguage}
-        title={i18n.t.language.title}
+        title={i18n.language === "en" ? "العربية" : "English"}
       >
         <Languages class="h-4 w-4" />
       </Button>
@@ -346,17 +367,25 @@
       bind:this={containerRef}
       class="editor-preview-container relative flex flex-1 overflow-hidden print:overflow-visible! print:h-auto! print:block!"
     >
-      <!-- Editor Pane -->
+      <!-- Editor/Preview Pane -->
       <div
-        class="editor-pane no-print h-full overflow-hidden"
+        class="editor-pane h-full overflow-hidden print:hidden!"
         class:mobile-hidden={mobileView !== "editor"}
         style="--editor-width: {editorWidthPercent}%;"
       >
-        {#if filesStore.currentFile || editorContent}
-          <MarkdownEditor
-            content={editorContent}
-            onchange={handleContentChange}
-          />
+        {#if filesStore.currentFile}
+          {#if viewMode === "edit"}
+            <!-- Edit Mode: CodeMirror Editor -->
+            <MarkdownEditor
+              content={editorContent}
+              onchange={handleContentChange}
+            />
+          {:else}
+            <!-- Preview Mode: Rendered Markdown (will add inline editing later) -->
+            <div class="h-full overflow-auto p-6">
+              <MarkdownPreview content={editorContent} />
+            </div>
+          {/if}
         {:else}
           <div
             class="flex h-full items-center justify-center text-muted-foreground"
