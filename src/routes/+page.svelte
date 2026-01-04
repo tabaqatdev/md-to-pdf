@@ -455,8 +455,7 @@
             class:mobile-hidden={mobileView !== "preview"}
             style="--preview-width: {100 - editorWidthPercent}%;"
           >
-            <Select
-              ablePreview
+                        <SelectablePreview
               content={editorContent}
               onEdit={handleSelectionEdit}
               onEditTable={handleTableEdit}
@@ -496,6 +495,16 @@
 <SettingsModal open={showSettings} onclose={() => (showSettings = false)} />
 
 <!-- Drop Zone Overlay -->
+
+<!-- Table Editor Modal -->
+{#if editingTableMarkdown}
+  <TableEditor
+    tableMarkdown={editingTableMarkdown}
+    onSave={handleTableSave}
+    onClose={() => (editingTableMarkdown = null)}
+  />
+{/if}
+
 {#if isDragging}
   <div
     class="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-primary/10 backdrop-blur-sm"
