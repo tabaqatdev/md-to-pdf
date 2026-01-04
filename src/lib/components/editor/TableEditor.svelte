@@ -78,16 +78,16 @@
 </script>
 
 <div
-  class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
   onclick={onClose}
 >
   <div
-    class="w-full max-w-5xl max-h-[90vh] rounded-lg bg-card border border-border shadow-2xl overflow-hidden flex flex-col"
+    class="w-full max-w-5xl max-h-[90vh] rounded-lg bg-background border-2 border-border shadow-2xl overflow-hidden flex flex-col"
     onclick={(e) => e.stopPropagation()}
   >
     <!-- Header -->
     <div
-      class="flex items-center justify-between px-6 py-4 border-b border-border"
+      class="flex items-center justify-between px-6 py-4 border-b-2 border-border bg-card"
     >
       <h2 class="text-xl font-bold">Edit Table</h2>
       <div class="flex gap-2">
@@ -155,7 +155,7 @@
 
     <!-- Footer -->
     <div
-      class="flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted/30"
+      class="flex justify-end gap-2 px-6 py-4 border-t-2 border-border bg-card"
     >
       <Button variant="outline" onclick={onClose}>Cancel</Button>
       <Button onclick={handleSave}>Save Changes</Button>
