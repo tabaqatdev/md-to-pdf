@@ -82,7 +82,7 @@
   onclick={onClose}
 >
   <div
-    class="w-full max-w-5xl max-h-[90vh] rounded-lg bg-background border-2 border-border shadow-2xl overflow-hidden flex flex-col"
+    class="w-full max-w-5xl max-h-[90vh] rounded-lg bg-card border-2 border-border shadow-2xl overflow-hidden flex flex-col"
     onclick={(e) => e.stopPropagation()}
   >
     <!-- Header -->
