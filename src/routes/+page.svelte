@@ -480,11 +480,13 @@
         >
           <div class="text-center">
             <p class="mb-2 text-lg">{i18n.t.app.title}</p>
+          <div class="text-center">
             <p class="text-sm">{i18n.t.sidebar.noFiles}</p>
             <Button variant="outline" class="mt-4" onclick={handleNewFile}>
               <FilePlus class="me-2 h-4 w-4" />
               {i18n.t.sidebar.newFile}
             </Button>
+          </div>
           </div>
         </div>
       {/if}
