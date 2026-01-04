@@ -6,7 +6,7 @@
   import Sidebar from "$lib/components/sidebar/Sidebar.svelte";
   import MarkdownEditor from "$lib/components/editor/MarkdownEditor.svelte";
   import MarkdownPreview from "$lib/components/preview/MarkdownPreview.svelte";
-  import EnhancedPreview from "$lib/components/preview/EnhancedPreview.svelte";
+  import SelectablePreview from "$lib/components/preview/SelectablePreview.svelte";
   import SettingsModal from "$lib/components/settings/SettingsModal.svelte";
   import Button from "$lib/components/ui/button.svelte";
   import Separator from "$lib/components/ui/separator.svelte";
@@ -88,16 +88,13 @@
     viewMode = mode;
   }
 
-  // Modal state for visual editing
-  let editingTable = $state<{ markdown: string; index: number } | null>(null);
-  let editingMermaid = $state<{ code: string; index: number } | null>(null);
-
-  function handleEditTable(markdown: string, index: number) {
-    editingTable = { markdown, index };
-  }
-
-  function handleEditMermaid(code: string, index: number) {
-    editingMermaid = { code, index };
+  // Handle selection-based editing
+  function handleSelectionEdit(originalText: string, newText: string) {
+    // Find and replace the original text with new text in markdown
+    if (editorContent.includes(originalText)) {
+      const updatedContent = editorContent.replace(originalText, newText);
+      handleContentChange(updatedContent);
+    }
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -441,20 +438,18 @@
             class:mobile-hidden={mobileView !== "preview"}
             style="--preview-width: {100 - editorWidthPercent}%;"
           >
-            <EnhancedPreview
+            <SelectablePreview
               content={editorContent}
-              onEditTable={handleEditTable}
-              onEditMermaid={handleEditMermaid}
+              onEdit={handleSelectionEdit}
             />
           </div>
 
           <!-- Preview Only Mode -->
         {:else}
           <div class="h-full w-full overflow-auto p-6">
-            <EnhancedPreview
+            <SelectablePreview
               content={editorContent}
-              onEditTable={handleEditTable}
-              onEditMermaid={handleEditMermaid}
+              onEdit={handleSelectionEdit}
             />
           </div>
         {/if}
@@ -479,55 +474,6 @@
 
 <!-- Settings Modal -->
 <SettingsModal open={showSettings} onclose={() => (showSettings = false)} />
-
-<!-- Test Modal for Table/Diagram Editing -->
-{#if editingTable}
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-    onclick={() => (editingTable = null)}
-  >
-    <div
-      class="w-full max-w-2xl rounded-lg bg-white dark:bg-gray-900 p-6 shadow-2xl"
-      onclick={(e) => e.stopPropagation()}
-    >
-      <h2 class="text-xl font-bold mb-4">Edit Table</h2>
-      <pre
-        class="bg-muted p-4 rounded overflow-auto max-h-96">{editingTable.markdown}</pre>
-      <div class="flex justify-end gap-2 mt-4">
-        <button
-          class="px-4 py-2 rounded bg-primary text-primary-foreground"
-          onclick={() => (editingTable = null)}
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-{/if}
-
-{#if editingMermaid}
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-    onclick={() => (editingMermaid = null)}
-  >
-    <div
-      class="w-full max-w-2xl rounded-lg bg-white dark:bg-gray-900 p-6 shadow-2xl"
-      onclick={(e) => e.stopPropagation()}
-    >
-      <h2 class="text-xl font-bold mb-4">Edit Mermaid Diagram</h2>
-      <pre
-        class="bg-muted p-4 rounded overflow-auto max-h-96">{editingMermaid.code}</pre>
-      <div class="flex justify-end gap-2 mt-4">
-        <button
-          class="px-4 py-2 rounded bg-primary text-primary-foreground"
-          onclick={() => (editingMermaid = null)}
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-{/if}
 
 <!-- Drop Zone Overlay -->
 {#if isDragging}
