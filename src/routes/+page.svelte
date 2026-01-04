@@ -90,11 +90,28 @@
 
   // Handle selection-based editing
   function handleSelectionEdit(originalText: string, newText: string) {
-    // Find and replace the original text with new text in markdown
     if (editorContent.includes(originalText)) {
       const updatedContent = editorContent.replace(originalText, newText);
       handleContentChange(updatedContent);
     }
+  }
+
+  // Handle table editing
+  let editingTableMarkdown = $state<string | null>(null);
+
+  function handleTableEdit(tableMarkdown: string) {
+    editingTableMarkdown = tableMarkdown;
+  }
+
+  function handleTableSave(newMarkdown: string) {
+    if (editingTableMarkdown && editorContent.includes(editingTableMarkdown)) {
+      const updatedContent = editorContent.replace(
+        editingTableMarkdown,
+        newMarkdown
+      );
+      handleContentChange(updatedContent);
+    }
+    editingTableMarkdown = null;
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -438,9 +455,11 @@
             class:mobile-hidden={mobileView !== "preview"}
             style="--preview-width: {100 - editorWidthPercent}%;"
           >
-            <SelectablePreview
+            <Select
+              ablePreview
               content={editorContent}
               onEdit={handleSelectionEdit}
+              onEditTable={handleTableEdit}
             />
           </div>
 
@@ -450,6 +469,7 @@
             <SelectablePreview
               content={editorContent}
               onEdit={handleSelectionEdit}
+              onEditTable={handleTableEdit}
             />
           </div>
         {/if}

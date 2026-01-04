@@ -4,15 +4,17 @@
   interface Props {
     content: string;
     onEdit?: (originalText: string, newText: string) => void;
+    onEditTable?: (tableMarkdown: string) => void;
   }
 
-  let { content, onEdit }: Props = $props();
+  let { content, onEdit, onEditTable }: Props = $props();
 
   let containerRef: HTMLDivElement;
   let showToolbar = $state(false);
   let toolbarPosition = $state({ x: 0, y: 0 });
   let selectedText = $state("");
   let selectedElement: HTMLElement | null = null;
+  let isTableSelected = $state(false);
 
   function handleSelectionChange() {
     const selection = window.getSelection();
@@ -38,9 +40,17 @@
 
     selectedText = text;
 
-    // Find the parent editable element (p, h1-h6, li, etc.)
+    // Find the parent element - check for table first
     let element = commonAncestor as HTMLElement;
+    isTableSelected = false;
+
     while (element && element !== containerRef) {
+      if (element.tagName === "TABLE") {
+        selectedElement = element;
+        isTableSelected = true;
+        break;
+      }
+
       if (
         [
           "P",
@@ -57,6 +67,7 @@
         ].includes(element.tagName)
       ) {
         selectedElement = element;
+        isTableSelected = false;
         break;
       }
       element = element.parentElement as HTMLElement;
@@ -77,13 +88,22 @@
   function handleEdit() {
     if (!selectedElement) return;
 
+    // If table is selected, emit table edit event
+    if (isTableSelected && onEditTable) {
+      const tableMarkdown = extractTableMarkdown(
+        selectedElement as HTMLTableElement
+      );
+      onEditTable(tableMarkdown);
+      showToolbar = false;
+      return;
+    }
+
+    // Otherwise, inline edit for regular text
     const originalText = selectedElement.textContent || "";
 
-    // Make element contenteditable
     selectedElement.contentEditable = "true";
     selectedElement.focus();
 
-    // Select the text
     const selection = window.getSelection();
     const range = document.createRange();
     range.selectNodeContents(selectedElement);
@@ -92,7 +112,6 @@
 
     showToolbar = false;
 
-    // Listen for blur to save
     const handleBlur = () => {
       selectedElement!.contentEditable = "false";
       const newText = selectedElement!.textContent || "";
@@ -105,7 +124,6 @@
       selectedElement!.removeEventListener("keydown", handleKeydown);
     };
 
-    // Listen for Escape to cancel
     const handleKeydown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         selectedElement!.textContent = originalText;
@@ -125,15 +143,48 @@
     selectedElement.addEventListener("keydown", handleKeydown);
   }
 
+  function extractTableMarkdown(table: HTMLTableElement): string {
+    const rows: string[][] = [];
+
+    // Get headers
+    const headers = Array.from(table.querySelectorAll("thead tr th")).map(
+      (th) => th.textContent?.trim() || ""
+    );
+    if (headers.length > 0) {
+      rows.push(headers);
+    }
+
+    // Get body rows
+    const bodyRows = table.querySelectorAll("tbody tr");
+    bodyRows.forEach((tr) => {
+      const cells = Array.from(tr.querySelectorAll("td")).map(
+        (td) => td.textContent?.trim() || ""
+      );
+      if (cells.length > 0) {
+        rows.push(cells);
+      }
+    });
+
+    // Convert to markdown
+    if (rows.length === 0) return "";
+
+    const header = rows[0];
+    const separator = header.map(() => "---");
+    const body = rows.slice(1);
+
+    return [
+      `| ${header.join(" | ")} |`,
+      `| ${separator.join(" | ")} |`,
+      ...body.map((row) => `| ${row.join(" | ")} |`),
+    ].join("\n");
+  }
+
   function handleDelete() {
     if (!selectedElement) return;
-
-    // TODO: Implement delete functionality
     console.log("Delete element:", selectedElement);
     showToolbar = false;
   }
 
-  // Listen for selection changes
   $effect(() => {
     document.addEventListener("selectionchange", handleSelectionChange);
 
@@ -151,16 +202,22 @@
       class="selection-toolbar"
       style="left: {toolbarPosition.x}px; top: {toolbarPosition.y}px;"
     >
-      <button class="toolbar-btn" onclick={handleEdit} title="Edit selection">
-        ✏️ Edit
-      </button>
       <button
-        class="toolbar-btn delete"
-        onclick={handleDelete}
-        title="Delete element"
+        class="toolbar-btn"
+        onclick={handleEdit}
+        title={isTableSelected ? "Edit table" : "Edit selection"}
       >
-        🗑️
+        ✏️ {isTableSelected ? "Edit Table" : "Edit"}
       </button>
+      {#if !isTableSelected}
+        <button
+          class="toolbar-btn delete"
+          onclick={handleDelete}
+          title="Delete element"
+        >
+          🗑️
+        </button>
+      {/if}
     </div>
   {/if}
 </div>
@@ -173,12 +230,13 @@
   .selection-toolbar {
     position: absolute;
     transform: translateX(-50%);
-    background: hsl(var(--primary));
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
     border-radius: 8px;
     padding: 4px;
     display: flex;
     gap: 2px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     z-index: 100;
     animation: fadeIn 0.15s ease-out;
   }
@@ -195,32 +253,35 @@
   }
 
   .toolbar-btn {
-    background: transparent;
-    border: none;
-    color: hsl(var(--primary-foreground));
-    padding: 8px 12px;
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
+    color: hsl(var(--foreground));
+    padding: 8px 14px;
     border-radius: 6px;
     cursor: pointer;
     font-size: 13px;
     font-weight: 600;
-    transition: background 0.2s;
+    transition: all 0.2s;
     white-space: nowrap;
   }
 
   .toolbar-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    border-color: hsl(var(--accent));
   }
 
   .toolbar-btn.delete:hover {
-    background: rgba(220, 38, 38, 0.2);
+    background: hsl(0 84% 60%);
+    color: white;
+    border-color: hsl(0 84% 60%);
   }
 
-  /* Style for elements being edited */
   :global([contenteditable="true"]) {
     outline: 2px solid hsl(var(--primary));
     outline-offset: 2px;
     border-radius: 4px;
     padding: 4px;
-    background: rgba(var(--primary-rgb), 0.05);
+    background: hsl(var(--accent) / 0.1);
   }
 </style>
