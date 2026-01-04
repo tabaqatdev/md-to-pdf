@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import MarkdownPreview from "./MarkdownPreview.svelte";
-  import { Edit2 } from "lucide-svelte";
 
   interface Props {
     content: string;
@@ -12,74 +11,110 @@
   let { content, onEditTable, onEditMermaid }: Props = $props();
 
   let containerRef: HTMLDivElement;
-  let editButtons: {
-    element: HTMLElement;
-    type: "table" | "mermaid";
-    index: number;
-  }[] = [];
 
   // Add edit buttons to tables and Mermaid diagrams
   function addEditButtons() {
     if (!containerRef) return;
 
-    // Clear existing buttons
-    editButtons.forEach((btn) => btn.element.remove());
-    editButtons = [];
-
     // Find all tables
     const tables = containerRef.querySelectorAll("table");
     tables.forEach((table, index) => {
+      // Skip if already wrapped
+      if (table.parentElement?.classList.contains("editable-wrapper")) return;
+
       const wrapper = document.createElement("div");
-      wrapper.className = "relative group inline-block w-full";
+      wrapper.className = "editable-wrapper";
+      wrapper.style.cssText = "position: relative; margin: 1rem 0;";
 
       const editBtn = document.createElement("button");
-      editBtn.className =
-        "absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity rounded-md bg-primary text-primary-foreground p-2 shadow-lg hover:bg-primary/90";
-      editBtn.innerHTML =
-        '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
-      editBtn.title = "Edit table";
+      editBtn.className = "edit-button";
+      editBtn.style.cssText = `
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 10;
+        background: hsl(var(--primary));
+        color: hsl(var(--primary-foreground));
+        padding: 8px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.2s;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      `;
+      editBtn.innerHTML = "✏️ Edit";
       editBtn.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
         handleEditTable(table, index);
       };
 
+      // Show button on wrapper hover
+      wrapper.onmouseenter = () => {
+        editBtn.style.opacity = "1";
+      };
+      wrapper.onmouseleave = () => {
+        editBtn.style.opacity = "0";
+      };
+
       // Wrap table
       table.parentNode?.insertBefore(wrapper, table);
       wrapper.appendChild(table);
       wrapper.appendChild(editBtn);
-
-      editButtons.push({ element: wrapper, type: "table", index });
     });
 
     // Find all Mermaid diagrams
     const diagrams = containerRef.querySelectorAll(".mermaid");
     diagrams.forEach((diagram, index) => {
+      // Skip if already wrapped
+      if (diagram.parentElement?.classList.contains("editable-wrapper")) return;
+
       const wrapper = document.createElement("div");
-      wrapper.className = "relative group inline-block w-full";
+      wrapper.className = "editable-wrapper";
+      wrapper.style.cssText = "position: relative; margin: 1rem 0;";
 
       const editBtn = document.createElement("button");
-      editBtn.className =
-        "absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity rounded-md bg-primary text-primary-foreground p-2 shadow-lg hover:bg-primary/90";
-      editBtn.innerHTML =
-        '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
-      editBtn.title = "Edit diagram";
+      editBtn.className = "edit-button";
+      editBtn.style.cssText = `
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 10;
+        background: hsl(var(--primary));
+        color: hsl(var(--primary-foreground));
+        padding: 8px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.2s;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      `;
+      editBtn.innerHTML = "✏️ Edit";
       editBtn.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
         handleEditMermaid(diagram as HTMLElement, index);
       };
 
+      // Show button on wrapper hover
+      wrapper.onmouseenter = () => {
+        editBtn.style.opacity = "1";
+      };
+      wrapper.onmouseleave = () => {
+        editBtn.style.opacity = "0";
+      };
+
       // Wrap diagram
       diagram.parentNode?.insertBefore(wrapper, diagram);
       wrapper.appendChild(diagram);
       wrapper.appendChild(editBtn);
-
-      editButtons.push({ element: wrapper, type: "mermaid", index });
     });
   }
 
   function handleEditTable(table: Element, index: number) {
+    console.log("Edit table clicked!", index);
     // Extract markdown from table HTML
     const markdown = extractTableMarkdown(table);
     if (onEditTable) {
@@ -88,6 +123,7 @@
   }
 
   function handleEditMermaid(diagram: HTMLElement, index: number) {
+    console.log("Edit diagram clicked!", index);
     // Extract Mermaid code from data attribute or text content
     const code =
       diagram.getAttribute("data-mermaid-source") || diagram.textContent || "";
@@ -138,7 +174,7 @@
       // Wait for MarkdownPreview to render
       setTimeout(() => {
         addEditButtons();
-      }, 100);
+      }, 200);
     }
   });
 </script>
@@ -146,9 +182,3 @@
 <div bind:this={containerRef} class="enhanced-preview">
   <MarkdownPreview {content} />
 </div>
-
-<style>
-  .enhanced-preview :global(.relative.group) {
-    margin: 1rem 0;
-  }
-</style>

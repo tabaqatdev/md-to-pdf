@@ -480,6 +480,55 @@
 <!-- Settings Modal -->
 <SettingsModal open={showSettings} onclose={() => (showSettings = false)} />
 
+<!-- Test Modal for Table/Diagram Editing -->
+{#if editingTable}
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+    onclick={() => (editingTable = null)}
+  >
+    <div
+      class="w-full max-w-2xl rounded-lg bg-white dark:bg-gray-900 p-6 shadow-2xl"
+      onclick={(e) => e.stopPropagation()}
+    >
+      <h2 class="text-xl font-bold mb-4">Edit Table</h2>
+      <pre
+        class="bg-muted p-4 rounded overflow-auto max-h-96">{editingTable.markdown}</pre>
+      <div class="flex justify-end gap-2 mt-4">
+        <button
+          class="px-4 py-2 rounded bg-primary text-primary-foreground"
+          onclick={() => (editingTable = null)}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if editingMermaid}
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+    onclick={() => (editingMermaid = null)}
+  >
+    <div
+      class="w-full max-w-2xl rounded-lg bg-white dark:bg-gray-900 p-6 shadow-2xl"
+      onclick={(e) => e.stopPropagation()}
+    >
+      <h2 class="text-xl font-bold mb-4">Edit Mermaid Diagram</h2>
+      <pre
+        class="bg-muted p-4 rounded overflow-auto max-h-96">{editingMermaid.code}</pre>
+      <div class="flex justify-end gap-2 mt-4">
+        <button
+          class="px-4 py-2 rounded bg-primary text-primary-foreground"
+          onclick={() => (editingMermaid = null)}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <!-- Drop Zone Overlay -->
 {#if isDragging}
   <div
