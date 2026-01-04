@@ -35,27 +35,26 @@
         z-index: 10;
         background: hsl(var(--primary));
         color: hsl(var(--primary-foreground));
-        padding: 8px;
-        border-radius: 6px;
-        border: none;
+        padding: 12px 20px;
+        border-radius: 8px;
+        border: 2px solid hsl(var(--primary-foreground));
         cursor: pointer;
-        opacity: 0;
-        transition: opacity 0.2s;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        font-weight: 700;
+        font-size: 14px;
       `;
-      editBtn.innerHTML = "✏️ Edit";
+      editBtn.innerHTML = "✏️ Edit Table";
+      editBtn.onmouseenter = () => {
+        editBtn.style.transform = "scale(1.05)";
+      };
+      editBtn.onmouseleave = () => {
+        editBtn.style.transform = "scale(1)";
+      };
       editBtn.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
         handleEditTable(table, index);
-      };
-
-      // Show button on wrapper hover
-      wrapper.onmouseenter = () => {
-        editBtn.style.opacity = "1";
-      };
-      wrapper.onmouseleave = () => {
-        editBtn.style.opacity = "0";
       };
 
       // Wrap table
@@ -83,27 +82,26 @@
         z-index: 10;
         background: hsl(var(--primary));
         color: hsl(var(--primary-foreground));
-        padding: 8px;
-        border-radius: 6px;
-        border: none;
+        padding: 12px 20px;
+        border-radius: 8px;
+        border: 2px solid hsl(var(--primary-foreground));
         cursor: pointer;
-        opacity: 0;
-        transition: opacity 0.2s;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        font-weight: 700;
+        font-size: 14px;
       `;
-      editBtn.innerHTML = "✏️ Edit";
+      editBtn.innerHTML = "✏️ Edit Diagram";
+      editBtn.onmouseenter = () => {
+        editBtn.style.transform = "scale(1.05)";
+      };
+      editBtn.onmouseleave = () => {
+        editBtn.style.transform = "scale(1)";
+      };
       editBtn.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
         handleEditMermaid(diagram as HTMLElement, index);
-      };
-
-      // Show button on wrapper hover
-      wrapper.onmouseenter = () => {
-        editBtn.style.opacity = "1";
-      };
-      wrapper.onmouseleave = () => {
-        editBtn.style.opacity = "0";
       };
 
       // Wrap diagram
