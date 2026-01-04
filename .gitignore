@@ -1,0 +1,22 @@
+node_modules/
+.svelte-kit/
+build/
+dist/
+.DS_Store
+*.log
+.env
+.env.local
+.env.*.local
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# OPFS data (browser storage - not needed in repo)
+.opfs/
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+Thumbs.db

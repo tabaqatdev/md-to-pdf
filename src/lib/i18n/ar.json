@@ -1,0 +1,118 @@
+{
+	"app": {
+		"title": "تحويل ماركداون إلى PDF",
+		"description": "حوّل ملفات ماركداون إلى PDF مع دعم كامل للغة العربية"
+	},
+	"sidebar": {
+		"files": "الملفات",
+		"newFile": "ملف جديد",
+		"newFolder": "مجلد جديد",
+		"rename": "إعادة تسمية",
+		"delete": "حذف",
+		"noFiles": "لا توجد ملفات بعد. أنشئ ملفاً للبدء.",
+		"searchPlaceholder": "البحث في الملفات..."
+	},
+	"editor": {
+		"placeholder": "ابدأ الكتابة بصيغة ماركداون...",
+		"untitled": "بدون عنوان",
+		"unsavedChanges": "تغييرات غير محفوظة"
+	},
+	"preview": {
+		"title": "المعاينة",
+		"empty": "لا يوجد شيء للمعاينة بعد"
+	},
+	"settings": {
+		"title": "إعدادات المستند",
+		"general": "عام",
+		"typography": "الخطوط",
+		"pageLayout": "تخطيط الصفحة",
+		"headerFooter": "الرأس والتذييل",
+		"headings": "أنماط العناوين",
+		"fontFamily": "نوع الخط",
+		"fontSize": "حجم الخط",
+		"lineHeight": "ارتفاع السطر",
+		"pageSize": "حجم الصفحة",
+		"margins": "الهوامش",
+		"top": "أعلى",
+		"bottom": "أسفل",
+		"left": "يسار",
+		"right": "يمين",
+		"header": "الرأس",
+		"footer": "التذييل",
+		"enabled": "مفعّل",
+		"logo": "الشعار",
+		"uploadLogo": "رفع شعار",
+		"removeLogo": "إزالة الشعار",
+		"logoPosition": "موضع الشعار",
+		"showOnFirstPage": "إظهار في الصفحة الأولى",
+		"pageNumbers": "أرقام الصفحات",
+		"pageNumberFormat": "الصيغة",
+		"customText": "نص مخصص",
+		"color": "اللون",
+		"borderBottom": "خط سفلي",
+		"save": "حفظ",
+		"reset": "إعادة الضبط",
+		"themeColors": "ألوان القالب",
+		"tableHeader": "رأس الجدول",
+		"links": "الروابط",
+		"blockquotes": "الاقتباسات",
+		"codeBlock": "مربعات الكود",
+		"textColor": "لون النص",
+		"close": "إغلاق"
+	},
+	"theme": {
+		"title": "المظهر",
+		"light": "فاتح",
+		"dark": "داكن",
+		"system": "تلقائي"
+	},
+	"language": {
+		"title": "اللغة",
+		"en": "English",
+		"ar": "العربية"
+	},
+	"export": {
+		"pdf": "تصدير إلى PDF",
+		"print": "طباعة",
+		"exporting": "جارٍ التصدير..."
+	},
+	"actions": {
+		"save": "حفظ",
+		"cancel": "إلغاء",
+		"confirm": "تأكيد",
+		"delete": "حذف",
+		"create": "إنشاء",
+		"enterFileName": "أدخل اسم الملف:"
+	},
+	"errors": {
+		"fileNotFound": "الملف غير موجود",
+		"saveFailed": "فشل حفظ الملف",
+		"deleteFailed": "فشل الحذف",
+		"generic": "حدث خطأ ما"
+	},
+	"confirm": {
+		"deleteFile": "هل أنت متأكد من حذف هذا الملف؟",
+		"deleteFolder": "هل أنت متأكد من حذف هذا المجلد وجميع محتوياته؟",
+		"unsavedChanges": "لديك تغييرات غير محفوظة. هل تريد الحفظ قبل الإغلاق؟"
+	},
+	"history": {
+		"title": "السجل",
+		"noFile": "افتح ملفاً لمشاهدة سجله",
+		"loading": "جارٍ التحميل...",
+		"noVersions": "لا توجد نسخ سابقة",
+		"viewDiff": "عرض التغييرات",
+		"restore": "استعادة",
+		"delete": "حذف",
+		"confirmRestore": "استعادة هذه النسخة؟ سيتم حفظ التغييرات الحالية في السجل.",
+		"confirmDelete": "حذف هذه النسخة؟",
+		"diffTitle": "مقارنة النسخ",
+		"current": "الحالي",
+		"copyRemoved": "نسخ المحذوف",
+		"copyAdded": "نسخ المضاف",
+		"copyLine": "نسخ السطر"
+	},
+	"dropzone": {
+		"title": "أفلت ملفات ماركداون هنا",
+		"subtitle": "سيتم استيراد ملفات .md فقط"
+	}
+}

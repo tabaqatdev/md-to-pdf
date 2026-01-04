@@ -1,0 +1,118 @@
+{
+	"app": {
+		"title": "Markdown to PDF",
+		"description": "Convert Markdown files to PDF with full RTL support"
+	},
+	"sidebar": {
+		"files": "Files",
+		"newFile": "New File",
+		"newFolder": "New Folder",
+		"rename": "Rename",
+		"delete": "Delete",
+		"noFiles": "No files yet. Create one to get started.",
+		"searchPlaceholder": "Search files..."
+	},
+	"editor": {
+		"placeholder": "Start writing in Markdown...",
+		"untitled": "Untitled",
+		"unsavedChanges": "Unsaved changes"
+	},
+	"preview": {
+		"title": "Preview",
+		"empty": "Nothing to preview yet"
+	},
+	"settings": {
+		"title": "Document Settings",
+		"general": "General",
+		"typography": "Typography",
+		"pageLayout": "Page Layout",
+		"headerFooter": "Header & Footer",
+		"headings": "Heading Styles",
+		"fontFamily": "Font Family",
+		"fontSize": "Font Size",
+		"lineHeight": "Line Height",
+		"pageSize": "Page Size",
+		"margins": "Margins",
+		"top": "Top",
+		"bottom": "Bottom",
+		"left": "Left",
+		"right": "Right",
+		"header": "Header",
+		"footer": "Footer",
+		"enabled": "Enabled",
+		"logo": "Logo",
+		"uploadLogo": "Upload Logo",
+		"removeLogo": "Remove Logo",
+		"logoPosition": "Logo Position",
+		"showOnFirstPage": "Show on first page",
+		"pageNumbers": "Page Numbers",
+		"pageNumberFormat": "Format",
+		"customText": "Custom Text",
+		"color": "Color",
+		"borderBottom": "Border Bottom",
+		"save": "Save",
+		"reset": "Reset to Defaults",
+		"themeColors": "Theme Colors",
+		"tableHeader": "Table Header",
+		"links": "Links",
+		"blockquotes": "Blockquotes",
+		"codeBlock": "Code Blocks",
+		"textColor": "Text Color",
+		"close": "Close"
+	},
+	"theme": {
+		"title": "Theme",
+		"light": "Light",
+		"dark": "Dark",
+		"system": "System"
+	},
+	"language": {
+		"title": "Language",
+		"en": "English",
+		"ar": "العربية"
+	},
+	"export": {
+		"pdf": "Export to PDF",
+		"print": "Print",
+		"exporting": "Exporting..."
+	},
+	"actions": {
+		"save": "Save",
+		"cancel": "Cancel",
+		"confirm": "Confirm",
+		"delete": "Delete",
+		"create": "Create",
+		"enterFileName": "Enter file name:"
+	},
+	"errors": {
+		"fileNotFound": "File not found",
+		"saveFailed": "Failed to save file",
+		"deleteFailed": "Failed to delete",
+		"generic": "Something went wrong"
+	},
+	"confirm": {
+		"deleteFile": "Are you sure you want to delete this file?",
+		"deleteFolder": "Are you sure you want to delete this folder and all its contents?",
+		"unsavedChanges": "You have unsaved changes. Do you want to save before closing?"
+	},
+	"history": {
+		"title": "History",
+		"noFile": "Open a file to see its history",
+		"loading": "Loading...",
+		"noVersions": "No previous versions",
+		"viewDiff": "View changes",
+		"restore": "Restore",
+		"delete": "Delete",
+		"confirmRestore": "Restore this version? Current changes will be saved to history.",
+		"confirmDelete": "Delete this version?",
+		"diffTitle": "Version Comparison",
+		"current": "Current",
+		"copyRemoved": "Copy Removed",
+		"copyAdded": "Copy Added",
+		"copyLine": "Copy line"
+	},
+	"dropzone": {
+		"title": "Drop markdown files here",
+		"subtitle": "Only .md files will be imported"
+	}
+}
