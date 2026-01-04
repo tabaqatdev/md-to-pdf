@@ -6,6 +6,7 @@
   import Sidebar from "$lib/components/sidebar/Sidebar.svelte";
   import MarkdownEditor from "$lib/components/editor/MarkdownEditor.svelte";
   import MarkdownPreview from "$lib/components/preview/MarkdownPreview.svelte";
+  import EnhancedPreview from "$lib/components/preview/EnhancedPreview.svelte";
   import SettingsModal from "$lib/components/settings/SettingsModal.svelte";
   import Button from "$lib/components/ui/button.svelte";
   import Separator from "$lib/components/ui/separator.svelte";
@@ -85,6 +86,18 @@
 
   function setViewMode(mode: "edit-only" | "split" | "preview-only") {
     viewMode = mode;
+  }
+
+  // Modal state for visual editing
+  let editingTable = $state<{ markdown: string; index: number } | null>(null);
+  let editingMermaid = $state<{ code: string; index: number } | null>(null);
+
+  function handleEditTable(markdown: string, index: number) {
+    editingTable = { markdown, index };
+  }
+
+  function handleEditMermaid(code: string, index: number) {
+    editingMermaid = { code, index };
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -428,13 +441,21 @@
             class:mobile-hidden={mobileView !== "preview"}
             style="--preview-width: {100 - editorWidthPercent}%;"
           >
-            <MarkdownPreview content={editorContent} />
+            <EnhancedPreview
+              content={editorContent}
+              onEditTable={handleEditTable}
+              onEditMermaid={handleEditMermaid}
+            />
           </div>
 
           <!-- Preview Only Mode -->
         {:else}
           <div class="h-full w-full overflow-auto p-6">
-            <MarkdownPreview content={editorContent} />
+            <EnhancedPreview
+              content={editorContent}
+              onEditTable={handleEditTable}
+              onEditMermaid={handleEditMermaid}
+            />
           </div>
         {/if}
       {:else}
