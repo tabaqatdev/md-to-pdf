@@ -35,12 +35,42 @@ class OPFSManager {
 		if (this.initialized) return;
 
 		try {
+			// Check if OPFS API is available
+			if (!navigator.storage || !navigator.storage.getDirectory) {
+				throw new Error('OPFS API not available in this browser');
+			}
+
+			// Check for cross-origin isolation (required for OPFS on some browsers)
+			if (typeof crossOriginIsolated !== 'undefined' && !crossOriginIsolated) {
+				console.warn(
+					'[OPFS] Cross-origin isolation not enabled. OPFS may not work properly. ' +
+						'The service worker should enable this automatically - try reloading the page.'
+				);
+			}
+
 			const opfsRoot = await navigator.storage.getDirectory();
 			this.root = await opfsRoot.getDirectoryHandle(ROOT_DIR, { create: true });
 			this.initialized = true;
+
+			console.log(
+				'[OPFS] Successfully initialized. Cross-origin isolated:',
+				crossOriginIsolated ?? 'unknown'
+			);
 		} catch (error) {
 			console.error('Failed to initialize OPFS:', error);
-			throw new Error('OPFS not supported or access denied');
+
+			// Provide more specific error messages
+			let errorMessage = 'OPFS not supported or access denied';
+			if (error instanceof DOMException) {
+				if (error.name === 'SecurityError') {
+					errorMessage =
+						'OPFS access denied due to security restrictions. Cross-origin isolation may be required. Please reload the page.';
+				} else if (error.name === 'NotSupportedError') {
+					errorMessage = 'OPFS is not supported in this browser or context';
+				}
+			}
+
+			throw new Error(errorMessage);
 		}
 	}
 

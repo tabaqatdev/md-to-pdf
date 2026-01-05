@@ -10,6 +10,6 @@
 		"sourceMap": true,
 		"strict": true,
 		"moduleResolution": "bundler",
-		"lib": ["esnext", "DOM", "DOM.Iterable", "DOM.AsyncIterable"]
+		"lib": ["es2022", "dom", "dom.iterable"]
 	}
 }

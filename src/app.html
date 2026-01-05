@@ -6,6 +6,33 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
 		<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+
+		<!-- Cross-Origin Isolation Service Worker for OPFS support -->
+		<script>
+			// Register COI service worker to enable cross-origin isolation
+			// Required for OPFS (Origin Private File System) on GitHub Pages
+			if ('serviceWorker' in navigator && !window.crossOriginIsolated) {
+				navigator.serviceWorker
+					.register('%sveltekit.assets%/coi-serviceworker.js')
+					.then((reg) => {
+						console.log('[COI] Service worker registered for cross-origin isolation');
+						// Check if we need to reload to activate
+						if (reg.active && !reg.installing && !reg.waiting) {
+							// Already active, check if we're isolated
+							if (!window.crossOriginIsolated) {
+								console.log('[COI] Reloading to enable cross-origin isolation...');
+								window.location.reload();
+							}
+						}
+					})
+					.catch((err) => {
+						console.warn('[COI] Service worker registration failed:', err);
+					});
+			} else if (window.crossOriginIsolated) {
+				console.log('[COI] Already cross-origin isolated');
+			}
+		</script>
+
 		%sveltekit.head%
 	</head>
 	<body

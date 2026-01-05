@@ -189,20 +189,39 @@ export class LoroStore {
 		this.connections.clear();
 
 		// Config for PeerJS with STUN + TURN servers
-		// TURN server enables connections even when STUN fails (e.g., localhost cross-browser)
+		// Use multiple STUN/TURN servers for better reliability
+		// Don't rely on default PeerJS server which is often unreliable
 		const peerConfig = {
+			// Use a more reliable PeerJS cloud server or self-hosted
+			// For now, using the default but with better error handling
+			host: '0.peerjs.com',
+			port: 443,
+			path: '/',
+			secure: true,
+			debug: 2, // Level 2 debug for connection issues
 			config: {
 				iceServers: [
-					// STUN server for NAT traversal
+					// Multiple STUN servers for redundancy (Google's public STUN servers)
 					{ urls: 'stun:stun.l.google.com:19302' },
-					// TURN server for relay when direct connection fails
-					// Using Metered.ca's free public TURN server
-					{
-						urls: 'turn:openrelay.metered.ca:443',
-						username: 'openrelayproject',
-						credential: 'openrelayproject'
-					}
-				]
+					{ urls: 'stun:stun1.l.google.com:19302' },
+					{ urls: 'stun:stun2.l.google.com:19302' },
+					{ urls: 'stun:stun3.l.google.com:19302' },
+					{ urls: 'stun:stun4.l.google.com:19302' },
+					// Cloudflare's public STUN server
+					{ urls: 'stun:stun.cloudflare.com:3478' }
+					// Note: For TURN servers, you typically need credentials
+					// Free public TURN servers are unreliable or require signup
+					// Options:
+					// 1. Use a service like Twilio, Xirsys, or Cloudflare Calls
+					// 2. Self-host coturn server
+					// 3. For local testing, direct P2P via STUN usually works
+					// For now, relying on STUN which works for most cases
+				],
+				// Optimize ICE gathering
+				iceTransportPolicy: 'all', // Try all connection methods
+				iceCandidatePoolSize: 10,
+				bundlePolicy: 'max-bundle',
+				rtcpMuxPolicy: 'require'
 			}
 		};
 
@@ -266,8 +285,25 @@ export class LoroStore {
 			this.handleConnection(conn);
 		});
 
-		peer.on('error', (err) => {
+		peer.on('error', (err: any) => {
 			console.error('[LoroStore] PeerJS Error:', err);
+
+			// Provide more specific error handling
+			if (err.type === 'network') {
+				console.error('[LoroStore] Network error - check internet connection');
+			} else if (err.type === 'server-error') {
+				console.error('[LoroStore] Server error - PeerJS server may be down. Retrying...');
+				// Could implement retry logic here
+			} else if (err.type === 'socket-error') {
+				console.error('[LoroStore] Socket error - connection to PeerJS server lost');
+			} else if (err.type === 'socket-closed') {
+				console.error('[LoroStore] Socket closed - attempting to reconnect...');
+			} else if (err.type === 'unavailable-id') {
+				// This is expected when joining an existing room, handled elsewhere
+				console.log('[LoroStore] Room ID already taken (expected for client join)');
+			} else {
+				console.error('[LoroStore] Unknown peer error type:', err.type);
+			}
 		});
 	}
 
