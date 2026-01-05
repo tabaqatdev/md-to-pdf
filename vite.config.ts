@@ -9,5 +9,16 @@ export default defineConfig({
 	optimizeDeps: {
 		include: ['mermaid'],
 		exclude: ['loro-crdt']
+	},
+	build: {
+		rollupOptions: {
+			onwarn(warning, warn) {
+				// Suppress sourcemap warnings for loro-crdt
+				if (warning.code === 'SOURCEMAP_ERROR' && warning.message.includes('loro-crdt')) {
+					return;
+				}
+				warn(warning);
+			}
+		}
 	}
 });

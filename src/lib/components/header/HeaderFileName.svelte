@@ -6,7 +6,7 @@
 
 	let isEditing = $state(false);
 	let newName = $state('');
-	let inputRef: HTMLInputElement;
+	let inputRef = $state<HTMLInputElement | undefined>();
 
 	// Update newName when file changes or editing starts
 	$effect(() => {
