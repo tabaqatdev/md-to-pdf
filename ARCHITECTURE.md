@@ -95,6 +95,8 @@ flowchart TB
         PR[MarkdownPreview]
         SM[SettingsModal]
         TB[Toolbar]
+        SP[SelectablePreview]
+        TE[TableEditor]
     end
 
     FS <--> OPFS
@@ -103,6 +105,7 @@ flowchart TB
     FS --> FT
     FS --> ED
     FS --> PR
+    FS --> SP
     HS --> HP
 
     SS <--> LS
@@ -141,6 +144,7 @@ stateDiagram-v2
 ```
 
 **State Properties:**
+
 - `files: FileNode[]` - Tree of files and folders
 - `currentFile: EditorFile | null` - Currently open file
 - `isLoading: boolean` - Loading state
@@ -148,6 +152,7 @@ stateDiagram-v2
 - `autoSaveEnabled: boolean` - Auto-save toggle (default: true)
 
 **Key Functions:**
+
 - `init()` - Initialize OPFS, history store, and load file list
 - `createFile(path, name)` - Create new markdown file
 - `createFolder(path, name)` - Create new folder
@@ -187,11 +192,13 @@ sequenceDiagram
 ```
 
 **State Properties:**
+
 - `versions: FileVersion[]` - List of versions for current file
 - `isLoading: boolean` - Loading state
 - `currentFilePath: string | null` - File being viewed
 
 **Key Functions:**
+
 - `saveVersion(path, content)` - Save content as a version (1 min interval)
 - `loadVersions(path)` - Load all versions for a file
 - `getVersionContent(id)` - Get content of specific version
@@ -199,6 +206,7 @@ sequenceDiagram
 - `clearHistory(path)` - Clear all history for a file
 
 **Version Storage:**
+
 ```
 .history/
 ├── document_md/
@@ -229,6 +237,7 @@ graph LR
 ```
 
 **State Properties:**
+
 - `fontFamily` - Font for body text
 - `fontSize` - Base font size (pt)
 - `lineHeight` - Line height multiplier
@@ -243,6 +252,7 @@ graph LR
 Manages language and RTL direction.
 
 **State Properties:**
+
 - `language: 'en' | 'ar'` - Current language
 - `direction: 'ltr' | 'rtl'` - Text direction
 - `t: Translations` - Translation strings
@@ -318,6 +328,7 @@ sequenceDiagram
 ### OPFS (Origin Private File System)
 
 Used for storing markdown files and folders. Provides:
+
 - Persistent storage (survives browser close)
 - Hierarchical folder structure
 - No size limits (within browser quota)
@@ -338,11 +349,13 @@ graph TB
 ### LocalStorage
 
 Used for:
+
 - User preferences (language, theme)
 - Document settings (fonts, margins, etc.)
 - Last opened file path
 
 **Keys:**
+
 - `md-to-pdf-settings` - Document settings JSON
 - `md-to-pdf-language` - Language preference
 - `md-to-pdf-last-file` - Last opened file path
@@ -363,7 +376,9 @@ graph TB
 
     Sidebar --> FileTree
     EditorPane --> MarkdownEditor
-    PreviewPane --> MarkdownPreview
+    PreviewPane --> SelectablePreview
+    SelectablePreview --> MarkdownPreview
+    SelectablePreview --> TableEditor
 
     SettingsModal --> Typography
     SettingsModal --> Layout
@@ -409,10 +424,23 @@ When exporting to PDF:
 
 ```css
 @media print {
-    .editor-pane, .no-print { display: none; }
-    .preview-pane { overflow: visible; height: auto; }
-    h1, h2, h3 { page-break-after: avoid; }
-    table, pre { page-break-inside: avoid; }
+  .editor-pane,
+  .no-print {
+    display: none;
+  }
+  .preview-pane {
+    overflow: visible;
+    height: auto;
+  }
+  h1,
+  h2,
+  h3 {
+    page-break-after: avoid;
+  }
+  table,
+  pre {
+    page-break-inside: avoid;
+  }
 }
 ```
 
