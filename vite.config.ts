@@ -10,6 +10,11 @@ export default defineConfig({
 		include: [],
 		exclude: ['loro-crdt']
 	},
+	resolve: {
+		alias: {
+			mermaid: 'mermaid/dist/mermaid.esm.min.mjs'
+		}
+	},
 	build: {
 		rollupOptions: {
 			onwarn(warning, warn) {
