@@ -329,33 +329,25 @@ function createFilesStore() {
 
 		try {
 			const finalName = newName.trim();
-			// Need complex logic to handle recursive rename in Loro or just Delete + Create
-			// OPFS rename:
-			await opfs.rename(oldPath, oldPath.split('/').slice(0, -1).concat(finalName).join('/'));
+			const newPath = oldPath.split('/').slice(0, -1).concat(finalName).join('/');
 
-			// For Loro, we treat rename as "Move content to new path, delete old path"
-			// Get old content
-			const content = await opfs.readFile(oldPath); // Wait, we just renamed it locally?
-			// Actually opfs.rename does the work.
+			// Get content from Loro BEFORE renaming in OPFS
+			const loroContent = loroStore.getFile(oldPath);
 
-			// Re-read from new path?
-			// Wait, opfs.rename takes (oldPath, newPath).
-			// Logic in original file was complex. Simply:
-			// Loro Rename:
-			// 1. Get content of old keys.
-			// 2. Set new keys.
-			// 3. Delete old keys.
+			// Rename in OPFS
+			await opfs.rename(oldPath, newPath);
 
-			if (loroStore.getFile(oldPath)) {
-				const c = loroStore.getFile(oldPath) || '';
-				// Calculate new path string... (Simplified for brevity)
-				const newPath = oldPath.split('/').slice(0, -1).concat(finalName).join('/');
-				loroStore.setFile(newPath, c);
+			// Sync to Loro: set new path, delete old path
+			if (loroContent) {
+				loroStore.setFile(newPath, loroContent);
 				loroStore.deleteFile(oldPath);
 			}
 
 			// Update current file if it was renamed
-			// ... (Existing logic)
+			if (currentFile && currentFile.path === oldPath) {
+				currentFile.path = newPath;
+				currentFile.name = finalName.endsWith('.md') ? finalName : `${finalName}.md`;
+			}
 
 			await refresh();
 		} catch (e) {
