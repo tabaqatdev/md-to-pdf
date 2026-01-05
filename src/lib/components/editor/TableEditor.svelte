@@ -8,8 +8,8 @@
 		Plus,
 		X,
 		Save,
-		Columns,
-		Rows
+		Columns2,
+		Rows2
 	} from 'lucide-svelte';
 	import { fade, scale } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -176,7 +176,7 @@
 				<div
 					class="bg-primary/10 text-primary flex h-10 w-10 items-center justify-center rounded-xl"
 				>
-					<Columns class="h-5 w-5" />
+					<Columns2 class="h-5 w-5" />
 				</div>
 				<div>
 					<h2 class="text-xl font-semibold tracking-tight">Table Editor</h2>
