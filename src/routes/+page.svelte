@@ -318,7 +318,11 @@
 
 <svelte:window onkeydown={handleKeydown} />
 <svelte:head>
-	<title>{i18n.t.app.title}</title>
+	<title
+		>{filesStore.currentFile
+			? filesStore.currentFile.path.replace(/\.(md|markdown)$/i, '')
+			: i18n.t.app.title}</title
+	>
 </svelte:head>
 
 <div
