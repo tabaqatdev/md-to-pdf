@@ -11,9 +11,10 @@
       startLine?: number,
       endLine?: number
     ) => void;
+    onScroll?: (scrollTop: number) => void;
   }
 
-  let { content, onEdit, onEditTable }: Props = $props();
+  let { content, onEdit, onEditTable, onScroll }: Props = $props();
 
   let containerRef: HTMLDivElement;
   let showToolbar = $state(false);
@@ -21,6 +22,13 @@
   let selectedText = $state("");
   let selectedElement: HTMLElement | null = null;
   let isTableSelected = $state(false);
+
+  export function scrollTo(scrollTop: number) {
+    const scrollContainer = containerRef?.querySelector(".preview-container");
+    if (scrollContainer) {
+      scrollContainer.scrollTop = scrollTop;
+    }
+  }
 
   function handleSelectionChange() {
     const selection = window.getSelection();
@@ -94,6 +102,11 @@
   function handleScroll() {
     if (showToolbar) {
       showToolbar = false;
+    }
+
+    const scrollContainer = containerRef?.querySelector(".preview-container");
+    if (scrollContainer && onScroll) {
+      onScroll(scrollContainer.scrollTop);
     }
   }
 

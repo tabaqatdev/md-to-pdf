@@ -1,172 +1,206 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import { EditorView, keymap, lineNumbers, highlightActiveLine, drawSelection } from '@codemirror/view';
-	import { EditorState, Compartment } from '@codemirror/state';
-	import { markdown } from '@codemirror/lang-markdown';
-	import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
-	import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
-	import { oneDark } from '@codemirror/theme-one-dark';
-	import { i18n } from '$lib/stores/i18n.svelte';
+  import { onMount, onDestroy } from "svelte";
+  import {
+    EditorView,
+    keymap,
+    lineNumbers,
+    highlightActiveLine,
+    drawSelection,
+  } from "@codemirror/view";
+  import { EditorState, Compartment } from "@codemirror/state";
+  import { markdown } from "@codemirror/lang-markdown";
+  import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+  import {
+    syntaxHighlighting,
+    defaultHighlightStyle,
+  } from "@codemirror/language";
+  import { oneDark } from "@codemirror/theme-one-dark";
+  import { i18n } from "$lib/stores/i18n.svelte";
 
-	interface Props {
-		content: string;
-		onchange?: (content: string) => void;
-		class?: string;
-		readonly?: boolean;
-	}
+  interface Props {
+    content: string;
+    onchange?: (content: string) => void;
+    onScroll?: (scrollTop: number) => void;
+    class?: string;
+    readonly?: boolean;
+  }
 
-	let { content, onchange, class: className, readonly = false }: Props = $props();
+  let {
+    content,
+    onchange,
+    onScroll,
+    class: className,
+    readonly = false,
+  }: Props = $props();
 
-	let editorContainer: HTMLDivElement;
-	let editorView: EditorView | null = null;
-	const themeCompartment = new Compartment();
-	const readonlyCompartment = new Compartment();
+  let editorContainer: HTMLDivElement;
+  let editorView: EditorView | null = null;
+  const themeCompartment = new Compartment();
+  const readonlyCompartment = new Compartment();
 
-	// Track if we're currently syncing to avoid loops
-	let isSyncing = false;
+  // Track if we're currently syncing to avoid loops
+  let isSyncing = false;
 
-	function getTheme() {
-		if (typeof document === 'undefined') return [];
-		const isDark = document.documentElement.classList.contains('dark');
-		return isDark ? oneDark : [];
-	}
+  export function scrollTo(scrollTop: number) {
+    if (editorView) {
+      editorView.scrollDOM.scrollTop = scrollTop;
+    }
+  }
 
-	function createEditor() {
-		if (!editorContainer) return;
+  function getTheme() {
+    if (typeof document === "undefined") return [];
+    const isDark = document.documentElement.classList.contains("dark");
+    return isDark ? oneDark : [];
+  }
 
-		const updateListener = EditorView.updateListener.of((update) => {
-			if (update.docChanged && !isSyncing) {
-				const newContent = update.state.doc.toString();
-				onchange?.(newContent);
-			}
-		});
+  function createEditor() {
+    if (!editorContainer) return;
 
-		// RTL support - detect per line
-		const rtlLinePlugin = EditorView.perLineTextDirection.of(true);
+    const updateListener = EditorView.updateListener.of((update) => {
+      if (update.docChanged && !isSyncing) {
+        const newContent = update.state.doc.toString();
+        onchange?.(newContent);
+      }
+    });
 
-		const state = EditorState.create({
-			doc: content,
-			extensions: [
-				lineNumbers(),
-				highlightActiveLine(),
-				drawSelection(),
-				history(),
-				markdown(),
-				syntaxHighlighting(defaultHighlightStyle),
-				keymap.of([...defaultKeymap, ...historyKeymap]),
-				themeCompartment.of(getTheme()),
-				readonlyCompartment.of(EditorState.readOnly.of(readonly)),
-				rtlLinePlugin,
-				updateListener,
-				EditorView.lineWrapping,
-				EditorView.theme({
-					'&': {
-						height: '100%',
-						fontSize: '14px'
-					},
-					'.cm-scroller': {
-						overflow: 'auto',
-						fontFamily: '"Arabic", "Fira Code", monospace'
-					},
-					'.cm-content': {
-						padding: '16px 0'
-					},
-					'.cm-line': {
-						padding: '0 16px'
-					},
-					'&.cm-focused': {
-						outline: 'none'
-					}
-				})
-			]
-		});
+    // Scroll listener
+    const domEventHandlers = EditorView.domEventHandlers({
+      scroll: (event, view) => {
+        if (event.target instanceof HTMLElement) {
+          onScroll?.(view.scrollDOM.scrollTop);
+        }
+      },
+    });
 
-		editorView = new EditorView({
-			state,
-			parent: editorContainer
-		});
-	}
+    // RTL support - detect per line
+    const rtlLinePlugin = EditorView.perLineTextDirection.of(true);
 
-	function destroyEditor() {
-		if (editorView) {
-			editorView.destroy();
-			editorView = null;
-		}
-	}
+    const state = EditorState.create({
+      doc: content,
+      extensions: [
+        lineNumbers(),
+        highlightActiveLine(),
+        drawSelection(),
+        history(),
+        markdown(),
+        syntaxHighlighting(defaultHighlightStyle),
+        keymap.of([...defaultKeymap, ...historyKeymap]),
+        themeCompartment.of(getTheme()),
+        readonlyCompartment.of(EditorState.readOnly.of(readonly)),
+        rtlLinePlugin,
+        updateListener,
+        domEventHandlers,
+        EditorView.lineWrapping,
+        EditorView.theme({
+          "&": {
+            height: "100%",
+            fontSize: "14px",
+          },
+          ".cm-scroller": {
+            overflow: "auto",
+            fontFamily: '"Arabic", "Fira Code", monospace',
+          },
+          ".cm-content": {
+            padding: "16px 0",
+          },
+          ".cm-line": {
+            padding: "0 16px",
+          },
+          "&.cm-focused": {
+            outline: "none",
+          },
+        }),
+      ],
+    });
 
-	// Update content from outside
-	$effect(() => {
-		// Need to access content to track it
-		const newContent = content;
+    editorView = new EditorView({
+      state,
+      parent: editorContainer,
+    });
+  }
 
-		if (editorView) {
-			const currentContent = editorView.state.doc.toString();
-			if (newContent !== currentContent) {
-				isSyncing = true;
-				editorView.dispatch({
-					changes: {
-						from: 0,
-						to: editorView.state.doc.length,
-						insert: newContent
-					}
-				});
-				isSyncing = false;
-			}
-		}
-	});
+  function destroyEditor() {
+    if (editorView) {
+      editorView.destroy();
+      editorView = null;
+    }
+  }
 
-	// Update theme when dark mode changes
-	$effect(() => {
-		if (editorView && typeof document !== 'undefined') {
-			// Watch for dark class changes
-			const isDark = document.documentElement.classList.contains('dark');
-			editorView.dispatch({
-				effects: themeCompartment.reconfigure(isDark ? oneDark : [])
-			});
-		}
-	});
+  // Update content from outside
+  $effect(() => {
+    // Need to access content to track it
+    const newContent = content;
 
-	// Update readonly state
-	$effect(() => {
-		if (editorView) {
-			editorView.dispatch({
-				effects: readonlyCompartment.reconfigure(EditorState.readOnly.of(readonly))
-			});
-		}
-	});
+    if (editorView) {
+      const currentContent = editorView.state.doc.toString();
+      if (newContent !== currentContent) {
+        isSyncing = true;
+        editorView.dispatch({
+          changes: {
+            from: 0,
+            to: editorView.state.doc.length,
+            insert: newContent,
+          },
+        });
+        isSyncing = false;
+      }
+    }
+  });
 
-	onMount(() => {
-		createEditor();
+  // Update theme when dark mode changes
+  $effect(() => {
+    if (editorView && typeof document !== "undefined") {
+      // Watch for dark class changes
+      const isDark = document.documentElement.classList.contains("dark");
+      editorView.dispatch({
+        effects: themeCompartment.reconfigure(isDark ? oneDark : []),
+      });
+    }
+  });
 
-		// Watch for theme changes
-		const observer = new MutationObserver((mutations) => {
-			for (const mutation of mutations) {
-				if (mutation.attributeName === 'class' && editorView) {
-					editorView.dispatch({
-						effects: themeCompartment.reconfigure(getTheme())
-					});
-				}
-			}
-		});
+  // Update readonly state
+  $effect(() => {
+    if (editorView) {
+      editorView.dispatch({
+        effects: readonlyCompartment.reconfigure(
+          EditorState.readOnly.of(readonly)
+        ),
+      });
+    }
+  });
 
-		observer.observe(document.documentElement, { attributes: true });
+  onMount(() => {
+    createEditor();
 
-		return () => observer.disconnect();
-	});
+    // Watch for theme changes
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.attributeName === "class" && editorView) {
+          editorView.dispatch({
+            effects: themeCompartment.reconfigure(getTheme()),
+          });
+        }
+      }
+    });
 
-	onDestroy(() => {
-		destroyEditor();
-	});
+    observer.observe(document.documentElement, { attributes: true });
+
+    return () => observer.disconnect();
+  });
+
+  onDestroy(() => {
+    destroyEditor();
+  });
 </script>
 
 <div
-	bind:this={editorContainer}
-	class="h-full w-full overflow-hidden border-r border-border bg-background {className}"
-	dir="auto"
+  bind:this={editorContainer}
+  class="h-full w-full overflow-hidden border-r border-border bg-background {className}"
+  dir="auto"
 ></div>
 
 <style>
-	:global(.cm-editor) {
-		height: 100%;
-	}
+  :global(.cm-editor) {
+    height: 100%;
+  }
 </style>

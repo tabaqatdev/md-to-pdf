@@ -27,10 +27,42 @@
     ArrowLeftRight,
   } from "lucide-svelte";
 
-  // ... (lines 29-35)
+  // Get current mode value for reactivity
+  let currentMode = $derived(mode.current);
+
+  let showSidebar = $state(true);
+  let showSettings = $state(false);
+  let editorContent = $state("");
   let isDragging = $state(false);
   let viewMode = $state<"edit-only" | "split" | "preview-only">("split");
   let scrollSync = $state(true); // Default to enabled
+
+  // Scroll Sync Logic
+  let editorRef: any = $state(null);
+  let previewRef: any = $state(null);
+  let isScrolling = false;
+
+  function handleEditorScroll(scrollTop: number) {
+    if (!scrollSync || isScrolling || !previewRef) return;
+
+    isScrolling = true;
+    previewRef.scrollTo(scrollTop);
+
+    requestAnimationFrame(() => {
+      isScrolling = false;
+    });
+  }
+
+  function handlePreviewScroll(scrollTop: number) {
+    if (!scrollSync || isScrolling || !editorRef) return;
+
+    isScrolling = true;
+    editorRef.scrollTo(scrollTop);
+
+    requestAnimationFrame(() => {
+      isScrolling = false;
+    });
+  }
 
   // Resizable panel state
   let editorWidthPercent = $state(50); // 50% default
@@ -366,7 +398,16 @@
         </button>
       </div>
 
-      <Separator orientation="vertical" class="h-6" />>
+      <Separator orientation="vertical" class="h-6" />
+
+      <Button
+        variant={scrollSync ? "default" : "ghost"}
+        size="icon"
+        onclick={() => (scrollSync = !scrollSync)}
+        title={scrollSync ? "Disable Scroll Sync" : "Enable Scroll Sync"}
+      >
+        <ArrowLeftRight class="h-4 w-4" />
+      </Button>
 
       <Button
         variant="ghost"
@@ -448,6 +489,7 @@
         {#if viewMode === "edit-only"}
           <div class="h-full w-full overflow-hidden print:hidden!">
             <MarkdownEditor
+              bind:this={editorRef}
               content={editorContent}
               onchange={handleContentChange}
             />
@@ -462,8 +504,10 @@
             style="--editor-width: {editorWidthPercent}%;"
           >
             <MarkdownEditor
+              bind:this={editorRef}
               content={editorContent}
               onchange={handleContentChange}
+              onScroll={handleEditorScroll}
             />
           </div>
 
@@ -490,9 +534,11 @@
             style="--preview-width: {100 - editorWidthPercent}%;"
           >
             <SelectablePreview
+              bind:this={previewRef}
               content={editorContent}
               onEdit={handleSelectionEdit}
               onEditTable={handleTableEdit}
+              onScroll={handlePreviewScroll}
             />
           </div>
 
@@ -500,6 +546,7 @@
         {:else}
           <div class="h-full w-full overflow-auto p-6">
             <SelectablePreview
+              bind:this={previewRef}
               content={editorContent}
               onEdit={handleSelectionEdit}
               onEditTable={handleTableEdit}
