@@ -379,42 +379,39 @@
 		padding: 0;
 	}
 
-	/* Mermaid diagrams */
+	/* ========== MERMAID DIAGRAMS ========== */
+	/* Container styles */
 	.preview-content :global(.mermaid) {
-		display: block;
-		margin: 1.5rem 0;
-		direction: ltr;
-		/* Ensure diagram fits within page and doesn't get cut */
-		page-break-inside: avoid;
-		break-inside: avoid;
-		overflow-x: auto;
-		overflow-y: visible;
-		width: 100%;
-		text-align: center;
-		margin: 20pt 0;
-		width: 100%;
-		max-width: 100%;
-		direction: ltr !important; /* Ensure diagrams always render LTR */
 		display: flex;
 		justify-content: center;
+		margin: 1.5rem 0;
+		width: 100%;
+		max-width: 100%;
+		direction: ltr !important;
+		text-align: center;
+		/* Page break control */
+		page-break-inside: avoid;
+		break-inside: avoid;
+		/* Overflow handling */
+		overflow-x: auto;
+		overflow-y: visible;
 	}
 
+	/* SVG sizing */
 	.preview-content :global(.mermaid svg) {
-		/* Use full width to ensure responsiveness */
 		width: 100%;
 		max-width: 100%;
 		height: auto;
 		background-color: white;
 	}
 
-	/* Gantt charts need extra width to prevent text overlap */
+	/* Gantt chart text sizing */
 	.preview-content :global(.mermaid svg .grid),
 	.preview-content :global(.mermaid svg .section),
 	.preview-content :global(.mermaid svg .task) {
 		font-size: 11px;
 	}
 
-	/* Ensure Gantt task text doesn't overlap */
 	.preview-content :global(.mermaid svg .taskText) {
 		font-size: 10px;
 	}
@@ -610,14 +607,6 @@
 			width: 100% !important;
 			max-width: 100% !important;
 			height: auto !important;
-		}
-
-		/* Gantt chart text adjustments */
-		.preview-content :global(.mermaid svg .taskText),
-		.preview-content :global(.mermaid svg .sectionTitle),
-		.preview-content :global(.mermaid svg text) {
-			/* Slightly smaller for print but legible */
-			font-size: 10px !important;
 		}
 	}
 

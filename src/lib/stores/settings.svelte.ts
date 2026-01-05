@@ -91,8 +91,8 @@ export const defaultSettings: DocumentSettings = {
 		pageNumberFormat: '1'
 	},
 	mermaid: {
-		fontFamily: 'Arial, sans-serif',
-		fontSize: 14
+		fontFamily: 'HelveticaNeueLT Arabic 55 Roman, Helvetica Neue LT Arabic, Arial, sans-serif',
+		fontSize: 18
 	},
 	headings: {
 		h1: { color: '#2c3e50', fontSize: '18pt', borderBottom: true },
