@@ -13,16 +13,26 @@
 	import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 	import { oneDark } from '@codemirror/theme-one-dark';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { loroStore } from '$lib/stores/loro.svelte';
+	import { LoroExtensions } from 'loro-codemirror';
 
 	interface Props {
 		content: string;
+		filePath: string;
 		onchange?: (content: string) => void;
 		onScroll?: (scrollTop: number) => void;
 		class?: string;
 		readonly?: boolean;
 	}
 
-	let { content, onchange, onScroll, class: className, readonly = false }: Props = $props();
+	let {
+		content,
+		filePath,
+		onchange,
+		onScroll,
+		class: className,
+		readonly = false
+	}: Props = $props();
 
 	let editorContainer: HTMLDivElement;
 	let editorView: EditorView | null = null;
@@ -106,6 +116,15 @@
 				updateListener,
 				domEventHandlers,
 				EditorView.lineWrapping,
+				LoroExtensions(
+					loroStore.doc,
+					{
+						user: loroStore.me,
+						ephemeral: loroStore.ephemeral
+					},
+					undefined,
+					() => loroStore.getDocText(filePath)
+				),
 				EditorView.theme({
 					'&': {
 						height: '100%',

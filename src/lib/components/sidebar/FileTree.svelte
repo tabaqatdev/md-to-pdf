@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { filesStore } from '$lib/stores/files.svelte';
+	import { loroStore } from '$lib/stores/loro.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { FileNode } from '$lib/utils/opfs';
 	import Button from '$lib/components/ui/button.svelte';
@@ -30,6 +31,9 @@
 	let newItemName = $state('');
 	let movingNode = $state<FileNode | null>(null);
 	let selectedFolder = $state<string>('');
+
+	// Create a derived store for reactivity
+	let files = $derived(filesStore.files);
 
 	function toggleFolder(path: string) {
 		if (expandedFolders.has(path)) {
@@ -255,7 +259,7 @@
 			<div class="text-muted-foreground flex items-center justify-center p-4">
 				<span class="animate-pulse">Loading...</span>
 			</div>
-		{:else if filesStore.files.length === 0 && !creatingIn}
+		{:else if files.length === 0 && !creatingIn}
 			<div class="text-muted-foreground p-4 text-center text-sm">
 				{i18n.t.sidebar.noFiles}
 			</div>
@@ -279,7 +283,7 @@
 				</div>
 			{/if}
 
-			{#each filesStore.files as node (node.id)}
+			{#each files as node (node.id)}
 				{@render fileNode(node, 0)}
 			{/each}
 		{/if}
@@ -291,6 +295,10 @@
 	{@const isEditing = editingPath === node.path}
 	{@const isActive = filesStore.currentFile?.path === node.path}
 	{@const paddingLeft = `${depth * 12 + 8}px`}
+	<!-- Filter collaborators editing this file -->
+	{@const collaborators = loroStore.awareness.filter(
+		(p) => p.currentFileId === node.path && p.id !== loroStore.me.id
+	)}
 
 	<div class="group">
 		<!-- Use div with role instead of nested buttons -->
@@ -330,7 +338,22 @@
 				<span class="flex-1 truncate text-start">{node.name}</span>
 			{/if}
 
-			<!-- Action buttons - now safe since parent is div, not button -->
+			<!-- Collaborator Indicators -->
+			{#if collaborators.length > 0}
+				<div class="mr-1 flex -space-x-1">
+					{#each collaborators as peer}
+						<div
+							class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-white text-[8px] font-bold text-white"
+							style="background-color: {peer.color}"
+							title={peer.name}
+						>
+							{peer.name.charAt(0).toUpperCase()}
+						</div>
+					{/each}
+				</div>
+			{/if}
+
+			<!-- Action buttons -->
 			<div class="hidden gap-0.5 group-hover:flex">
 				{#if node.type === 'folder'}
 					<button

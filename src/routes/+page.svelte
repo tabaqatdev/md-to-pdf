@@ -2,13 +2,17 @@
 	import { filesStore } from '$lib/stores/files.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { settingsStore } from '$lib/stores/settings.svelte';
+	import { loroStore } from '$lib/stores/loro.svelte';
+	import { page } from '$app/stores';
 	import { mode, toggleMode } from 'mode-watcher';
 	import Sidebar from '$lib/components/sidebar/Sidebar.svelte';
 	import MarkdownEditor from '$lib/components/editor/MarkdownEditor.svelte';
 	import MarkdownPreview from '$lib/components/preview/MarkdownPreview.svelte';
 	import SelectablePreview from '$lib/components/preview/SelectablePreview.svelte';
 	import SettingsModal from '$lib/components/settings/SettingsModal.svelte';
+	import ShareModal from '$lib/components/share/ShareModal.svelte';
 	import TableEditor from '$lib/components/editor/TableEditor.svelte';
+	import HeaderFileName from '$lib/components/header/HeaderFileName.svelte';
 	import Button from '$lib/components/ui/button.svelte';
 	import Separator from '$lib/components/ui/separator.svelte';
 	import {
@@ -24,7 +28,8 @@
 		FilePlus,
 		Eye,
 		Code2,
-		ArrowLeftRight
+		ArrowLeftRight,
+		Users
 	} from 'lucide-svelte';
 
 	// Get current mode value for reactivity
@@ -32,6 +37,7 @@
 
 	let showSidebar = $state(true);
 	let showSettings = $state(false);
+	let showShareModal = $state(false);
 	let editorContent = $state('');
 	let isDragging = $state(false);
 	let viewMode = $state<'edit-only' | 'split' | 'preview-only'>('split');
@@ -76,6 +82,23 @@
 	$effect(() => {
 		if (filesStore.currentFile) {
 			editorContent = filesStore.currentFile.content;
+			loroStore.init(editorContent);
+		}
+	});
+
+	// Handle URL hash for room joining
+	$effect(() => {
+		const hash = $page.url.hash;
+		if (hash.includes('room=')) {
+			const roomId = hash.split('room=')[1].split('&')[0];
+			console.log('[Page] Logic detected room ID from hash:', roomId);
+			if (roomId && loroStore.roomId !== roomId) {
+				console.log('[Page] Joining room:', roomId);
+				// Isolate FS for this room
+				filesStore.setScope(`rooms/${roomId}`);
+				loroStore.joinRoom(roomId);
+				showShareModal = true;
+			}
 		}
 	});
 
@@ -87,12 +110,32 @@
 	async function handleSave() {
 		if (!filesStore.currentFile) return;
 
-		// If it's a new file, prompt for filename
-		if (filesStore.currentFile.isNew) {
-			const filename = prompt(i18n.t.actions.enterFileName || 'Enter file name:', 'Untitled.md');
-			if (!filename) return;
+		// If it's a new file, it will stay new until renamed via the header
+		// or we can just save it as Untitled.md if user really wants.
+		// But better: if it's new, `saveCurrentFile` in store might need to handle it?
+		// Actually store.saveCurrentFile checks isNew.
+		// If isNew is true, we should probably trigger the rename mode via state?
+		// But HeaderFileName auto-triggers edit mode on isNew.
+		// So clicking save on a new file should just save content to the "Untitled" draft?
+		// No, currentFile.isNew prevents saving to disk in `saveCurrentFile`.
 
-			await filesStore.saveNewFile('', filename);
+		// Let's just try to save. If it's new, the user should have renamed it.
+		// If they didn't, we can default to saving as Untitled-timestamp.md?
+		// OR: Focus the header input?
+
+		if (filesStore.currentFile.isNew) {
+			// New file logic is now handled by HeaderFileName auto-focusing
+			// If user clicks save button while still new, maybe flash the header?
+			// For now, let's just save as is (which might require a small update to store to allow saving new files as default name?)
+			// Actually, best flow:
+			// 1. New File -> Header Input focuses.
+			// 2. User types name -> Enter -> Saves.
+
+			// If user ignores input and clicks Save button...
+			// We should enforce naming.
+			// We can dispatch an event or use a store signal to say "Focus Header"?
+			// Simplest: Just alert for now or let them know.
+			alert(i18n.t.actions.enterFileName || 'Please name the file first');
 		} else {
 			await filesStore.saveCurrentFile();
 		}
@@ -300,17 +343,22 @@
 			>
 				<Save class="h-4 w-4" />
 			</Button>
+
+			<Separator orientation="vertical" class="h-6" />
+
+			<Button
+				variant="ghost"
+				size="icon"
+				class={loroStore.roomId ? 'text-green-500 hover:text-green-600' : ''}
+				onclick={() => (showShareModal = true)}
+				title="Collaborate"
+			>
+				<Users class="h-4 w-4" />
+			</Button>
 		</div>
 
 		<div class="flex items-center gap-1">
-			{#if filesStore.currentFile}
-				<span class="text-muted-foreground text-sm">
-					{filesStore.currentFile.name}
-					{#if filesStore.currentFile.isDirty}
-						<span class="text-yellow-500">*</span>
-					{/if}
-				</span>
-			{/if}
+			<HeaderFileName />
 		</div>
 
 		<div class="flex items-center gap-2">
@@ -448,74 +496,78 @@
 			class="editor-preview-container relative flex flex-1 overflow-hidden print:block! print:h-auto! print:overflow-visible!"
 		>
 			{#if filesStore.currentFile}
-				<!-- Edit Only Mode -->
-				{#if viewMode === 'edit-only'}
-					<div class="h-full w-full overflow-hidden print:hidden!">
-						<MarkdownEditor
-							bind:this={editorRef}
-							content={editorContent}
-							onchange={handleContentChange}
-						/>
-					</div>
+				{#key filesStore.currentFile.id}
+					<!-- Edit Only Mode -->
+					{#if viewMode === 'edit-only'}
+						<div class="h-full w-full overflow-hidden print:hidden!">
+							<MarkdownEditor
+								bind:this={editorRef}
+								content={editorContent}
+								filePath={filesStore.currentFile.path}
+								onchange={handleContentChange}
+							/>
+						</div>
 
-					<!-- Split View Mode -->
-				{:else if viewMode === 'split'}
-					<!-- Editor Pane (Left) -->
-					<div
-						class="editor-pane h-full overflow-hidden print:hidden!"
-						class:mobile-hidden={mobileView !== 'editor'}
-						style="--editor-width: {editorWidthPercent}%;"
-					>
-						<MarkdownEditor
-							bind:this={editorRef}
-							content={editorContent}
-							onchange={handleContentChange}
-							onScroll={handleEditorScroll}
-						/>
-					</div>
+						<!-- Split View Mode -->
+					{:else if viewMode === 'split'}
+						<!-- Editor Pane (Left) -->
+						<div
+							class="editor-pane h-full overflow-hidden print:hidden!"
+							class:mobile-hidden={mobileView !== 'editor'}
+							style="--editor-width: {editorWidthPercent}%;"
+						>
+							<MarkdownEditor
+								bind:this={editorRef}
+								content={editorContent}
+								filePath={filesStore.currentFile.path}
+								onchange={handleContentChange}
+								onScroll={handleEditorScroll}
+							/>
+						</div>
 
-					<!-- Resizable Divider -->
-					<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-					<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-					<div
-						class="resize-handle no-print"
-						onmousedown={handleResizeStart}
-						ontouchstart={handleResizeStart}
-						ondblclick={handleResizeReset}
-						role="separator"
-						aria-orientation="vertical"
-						aria-valuenow={editorWidthPercent}
-						tabindex="0"
-					>
-						<div class="resize-handle-bar"></div>
-					</div>
+						<!-- Resizable Divider -->
+						<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+						<div
+							class="resize-handle no-print"
+							onmousedown={handleResizeStart}
+							ontouchstart={handleResizeStart}
+							ondblclick={handleResizeReset}
+							role="separator"
+							aria-orientation="vertical"
+							aria-valuenow={editorWidthPercent}
+							tabindex="0"
+						>
+							<div class="resize-handle-bar"></div>
+						</div>
 
-					<!-- Preview Pane (Right) -->
-					<div
-						class="preview-pane border-border h-full overflow-hidden border-s print:block! print:h-auto! print:w-full! print:overflow-visible!"
-						class:mobile-hidden={mobileView !== 'preview'}
-						style="--preview-width: {100 - editorWidthPercent}%;"
-					>
-						<SelectablePreview
-							bind:this={previewRef}
-							content={editorContent}
-							onEdit={handleSelectionEdit}
-							onEditTable={handleTableEdit}
-							onScroll={handlePreviewScroll}
-						/>
-					</div>
+						<!-- Preview Pane (Right) -->
+						<div
+							class="preview-pane border-border h-full overflow-hidden border-s print:block! print:h-auto! print:w-full! print:overflow-visible!"
+							class:mobile-hidden={mobileView !== 'preview'}
+							style="--preview-width: {100 - editorWidthPercent}%;"
+						>
+							<SelectablePreview
+								bind:this={previewRef}
+								content={editorContent}
+								onEdit={handleSelectionEdit}
+								onEditTable={handleTableEdit}
+								onScroll={handlePreviewScroll}
+							/>
+						</div>
 
-					<!-- Preview Only Mode -->
-				{:else}
-					<div class="h-full w-full overflow-auto p-6">
-						<SelectablePreview
-							bind:this={previewRef}
-							content={editorContent}
-							onEdit={handleSelectionEdit}
-							onEditTable={handleTableEdit}
-						/>
-					</div>
-				{/if}
+						<!-- Preview Only Mode -->
+					{:else}
+						<div class="h-full w-full overflow-auto p-6">
+							<SelectablePreview
+								bind:this={previewRef}
+								content={editorContent}
+								onEdit={handleSelectionEdit}
+								onEditTable={handleTableEdit}
+							/>
+						</div>
+					{/if}
+				{/key}
 			{:else}
 				<!-- No file open -->
 				<div class="text-muted-foreground flex h-full w-full items-center justify-center">
@@ -535,6 +587,11 @@
 
 <!-- Settings Modal -->
 <SettingsModal open={showSettings} onclose={() => (showSettings = false)} />
+
+<!-- Share Modal -->
+{#if showShareModal}
+	<ShareModal onClose={() => (showShareModal = false)} />
+{/if}
 
 <!-- Drop Zone Overlay -->
 

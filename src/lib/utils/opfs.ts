@@ -29,6 +29,7 @@ const METADATA_FILE = '.metadata.json';
 class OPFSManager {
 	private root: FileSystemDirectoryHandle | null = null;
 	private initialized = false;
+	private scope = '';
 
 	async init(): Promise<void> {
 		if (this.initialized) return;
@@ -43,6 +44,11 @@ class OPFSManager {
 		}
 	}
 
+	setScope(path: string) {
+		this.scope = path;
+		console.log(`OPFS scope set to: '${this.scope}'`);
+	}
+
 	private async ensureInit(): Promise<FileSystemDirectoryHandle> {
 		if (!this.initialized || !this.root) {
 			await this.init();
@@ -50,7 +56,39 @@ class OPFSManager {
 		return this.root!;
 	}
 
+	// Helper to resolve logical path to physical path including scope
+	private resolvePath(path: string | undefined): string {
+		const cleanPath = path || '';
+		if (this.scope) {
+			return cleanPath ? `${this.scope}/${cleanPath}` : this.scope;
+		}
+		return cleanPath;
+	}
+
 	private async getDirectoryHandle(
+		path: string,
+		create = false
+	): Promise<FileSystemDirectoryHandle> {
+		// Resolve scoped path
+		const fullPath = this.resolvePath(path);
+		return this.getRawDirectoryHandle(fullPath, create);
+	}
+
+	private async getFileHandle(path: string, create = false): Promise<FileSystemFileHandle> {
+		// Resolve scope first
+		const fullPath = this.resolvePath(path);
+
+		const parts = fullPath.split('/').filter(Boolean);
+		const fileName = parts.pop();
+		if (!fileName) throw new Error('Invalid file path');
+
+		const dirPath = parts.join('/');
+		// Now call getRawDirectoryHandle because dirPath is already a physical path relative to root
+		const dir = await this.getRawDirectoryHandle(dirPath, create);
+		return dir.getFileHandle(fileName, { create });
+	}
+
+	private async getRawDirectoryHandle(
 		path: string,
 		create = false
 	): Promise<FileSystemDirectoryHandle> {
@@ -65,16 +103,6 @@ class OPFSManager {
 		}
 
 		return current;
-	}
-
-	private async getFileHandle(path: string, create = false): Promise<FileSystemFileHandle> {
-		const parts = path.split('/').filter(Boolean);
-		const fileName = parts.pop();
-		if (!fileName) throw new Error('Invalid file path');
-
-		const dirPath = parts.join('/');
-		const dir = await this.getDirectoryHandle(dirPath, create);
-		return dir.getFileHandle(fileName, { create });
 	}
 
 	async createFolder(path: string): Promise<void> {
@@ -182,7 +210,14 @@ class OPFSManager {
 	}
 
 	async listDirectory(path = ''): Promise<FileNode[]> {
-		const dir = await this.getDirectoryHandle(path);
+		let dir: FileSystemDirectoryHandle;
+		try {
+			dir = await this.getDirectoryHandle(path);
+		} catch (e) {
+			console.warn(`OPFS listDirectory failed for path '${path}' (likely doesn't exist yet):`, e);
+			return [];
+		}
+
 		const entries: FileNode[] = [];
 		const now = Date.now();
 
