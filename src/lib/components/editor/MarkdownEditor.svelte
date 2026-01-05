@@ -47,10 +47,34 @@
     }
   }
 
+  const customDarkTheme = EditorView.theme(
+    {
+      "&": {
+        backgroundColor: "var(--color-background) !important",
+        color: "var(--color-foreground) !important",
+      },
+      ".cm-content": {
+        caretColor: "var(--color-foreground)",
+      },
+      ".cm-gutters": {
+        backgroundColor: "var(--color-background) !important",
+        color: "var(--color-muted-foreground)",
+        borderRight: "1px solid var(--color-border)",
+      },
+      ".cm-activeLine": {
+        backgroundColor: "var(--color-muted) !important",
+      },
+      ".cm-activeLineGutter": {
+        backgroundColor: "var(--color-muted) !important",
+      },
+    },
+    { dark: true }
+  );
+
   function getTheme() {
     if (typeof document === "undefined") return [];
     const isDark = document.documentElement.classList.contains("dark");
-    return isDark ? oneDark : [];
+    return isDark ? [oneDark, customDarkTheme] : [];
   }
 
   function createEditor() {
