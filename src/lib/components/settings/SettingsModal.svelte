@@ -13,7 +13,9 @@
 
 	let { open, onclose }: Props = $props();
 
-	let activeTab = $state<'typography' | 'layout' | 'header' | 'headings' | 'theme'>('typography');
+	let activeTab = $state<'typography' | 'layout' | 'header' | 'headings' | 'theme' | 'mermaid'>(
+		'typography'
+	);
 
 	function handleLogoUpload(event: Event) {
 		const input = event.target as HTMLInputElement;
@@ -134,6 +136,17 @@
 					onclick={() => (activeTab = 'theme')}
 				>
 					{i18n.t.settings.themeColors}
+				</button>
+				<button
+					type="button"
+					role="tab"
+					aria-selected={activeTab === 'mermaid'}
+					class="px-4 py-2 text-sm {activeTab === 'mermaid'
+						? 'border-primary border-b-2 font-medium'
+						: 'text-muted-foreground'}"
+					onclick={() => (activeTab = 'mermaid')}
+				>
+					Diagrams
 				</button>
 			</div>
 
@@ -701,6 +714,73 @@
 												textColor: e.currentTarget.value
 											})}
 									/>
+								</div>
+							</div>
+						</div>
+					</div>
+				{/if}
+
+				{#if activeTab === 'mermaid'}
+					<div class="space-y-4">
+						<div class="grid grid-cols-1 gap-4">
+							<div>
+								<h3 class="mb-3 font-medium">Mermaid Diagrams</h3>
+								<p class="text-muted-foreground mb-4 text-sm">
+									Configure how charts and diagrams are rendered.
+								</p>
+
+								<div class="space-y-4">
+									<div>
+										<label for="mermaid-font-family" class="mb-1 block text-sm font-medium"
+											>{i18n.t.settings.fontFamily}</label
+										>
+										<select
+											id="mermaid-font-family"
+											class="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+											value={settingsStore.current.mermaid?.fontFamily || 'Arial, sans-serif'}
+											onchange={(e) =>
+												settingsStore.updateMermaid({
+													fontFamily: e.currentTarget.value
+												})}
+										>
+											<optgroup label="Bundled Fonts">
+												<option value="Cairo">Cairo (Arabic)</option>
+											</optgroup>
+											<optgroup label="System Fonts - Arabic">
+												<option value="Helvetica Neue LT Arabic">Helvetica Neue LT Arabic</option>
+												<option value="SF Arabic">SF Arabic (macOS)</option>
+												<option value="Segoe UI">Segoe UI (Windows)</option>
+												<option value="Tahoma">Tahoma</option>
+											</optgroup>
+											<optgroup label="System Fonts - General">
+												<option value="Arial, sans-serif">Arial</option>
+												<option value="Helvetica Neue">Helvetica Neue</option>
+												<option value="Georgia">Georgia</option>
+												<option value="Times New Roman">Times New Roman</option>
+												<option value="Verdana">Verdana</option>
+												<option value="system-ui">System Default</option>
+												<option value="'Courier New', Courier, monospace">Courier New</option>
+												<option value="'Fira Code', monospace">Fira Code</option>
+											</optgroup>
+										</select>
+									</div>
+
+									<div>
+										<label for="mermaid-font-size" class="mb-1 block text-sm font-medium"
+											>{i18n.t.settings.fontSize} (px)</label
+										>
+										<Input
+											id="mermaid-font-size"
+											type="number"
+											min="8"
+											max="32"
+											value={settingsStore.current.mermaid?.fontSize?.toString() || '14'}
+											onchange={(e) =>
+												settingsStore.updateMermaid({
+													fontSize: parseInt(e.currentTarget.value) || 14
+												})}
+										/>
+									</div>
 								</div>
 							</div>
 						</div>

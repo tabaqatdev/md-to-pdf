@@ -17,7 +17,11 @@
 	let mermaidReady = $state(false);
 
 	// Process markdown when content changes
+	// Process markdown when content changes or mermaid settings change
 	$effect(() => {
+		// Track dependencies
+		const mermaidSettings = settingsStore.current.mermaid;
+
 		if (content) {
 			const result = processMarkdown(content);
 			processedHtml = result.html;
@@ -72,11 +76,25 @@
 			// Handle potential CJS/ESM interop differences
 			const mermaid = mermaidModule.default || mermaidModule;
 
+			// Get settings
+			const { fontFamily, fontSize } = settingsStore.current.mermaid || {
+				fontFamily: 'Arial, sans-serif',
+				fontSize: 14
+			};
+
 			mermaid.initialize({
 				startOnLoad: false,
 				theme: 'default',
 				securityLevel: 'loose',
-				fontFamily: 'Arial, sans-serif',
+				fontFamily: fontFamily,
+				themeVariables: {
+					fontFamily: fontFamily,
+					fontSize: `${fontSize}px`,
+					// Update specific node font sizes
+					nodeBorder: '1px solid #333',
+					mainBkg: '#fff',
+					nodeTextColor: '#333'
+				},
 				// Gantt chart settings - prevent text overlap
 				gantt: {
 					barHeight: 50,
@@ -85,8 +103,8 @@
 					rightPadding: 75,
 					leftPadding: 75,
 					gridLineStartPadding: 35,
-					fontSize: 14,
-					sectionFontSize: 16,
+					fontSize: fontSize,
+					sectionFontSize: fontSize + 2,
 					numberSectionStyles: 4,
 					axisFormat: '%Y-%m-%d',
 					useWidth: 1200
@@ -103,8 +121,22 @@
 
 			const mermaidDivs = previewContainer.querySelectorAll('.mermaid');
 			if (mermaidDivs.length > 0) {
+				// Apply font size to container
+				mermaidDivs.forEach((div) => {
+					(div as HTMLElement).style.fontSize = `${fontSize}px`;
+				});
+
 				await mermaid.run({
 					nodes: mermaidDivs as NodeListOf<HTMLElement>
+				});
+
+				// Post-processing for specific diagram types if needed
+				mermaidDivs.forEach((div) => {
+					const svg = div.querySelector('svg');
+					if (svg) {
+						svg.style.fontFamily = fontFamily;
+						svg.style.fontSize = `${fontSize}px`;
+					}
 				});
 			}
 		} catch (error) {
@@ -209,7 +241,9 @@
 				<td class="content-cell">
 					{#if processedHtml}
 						<div class="preview-content prose prose-sm max-w-none" dir={isRTL ? 'rtl' : 'ltr'}>
-							{@html processedHtml}
+							{#key settingsStore.current.mermaid}
+								{@html processedHtml}
+							{/key}
 						</div>
 					{:else}
 						<div class="text-muted-foreground flex h-full items-center justify-center">

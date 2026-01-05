@@ -45,6 +45,12 @@ export interface DocumentSettings {
 		textColor: string;
 	};
 
+	// Mermaid Diagrams
+	mermaid: {
+		fontFamily: string;
+		fontSize: number;
+	};
+
 	// Heading Styles
 	headings: {
 		h1: HeadingStyle;
@@ -84,6 +90,10 @@ export const defaultSettings: DocumentSettings = {
 		showPageNumbers: true,
 		pageNumberFormat: '1'
 	},
+	mermaid: {
+		fontFamily: 'Arial, sans-serif',
+		fontSize: 14
+	},
 	headings: {
 		h1: { color: '#2c3e50', fontSize: '18pt', borderBottom: true },
 		h2: { color: '#2980b9', fontSize: '14pt', borderBottom: true },
@@ -109,7 +119,8 @@ function createSettingsStore() {
 				settings = {
 					...defaultSettings,
 					...parsed,
-					theme: { ...defaultSettings.theme, ...parsed.theme }
+					theme: { ...defaultSettings.theme, ...parsed.theme },
+					mermaid: { ...defaultSettings.mermaid, ...parsed.mermaid }
 				};
 			} catch {
 				settings = structuredClone(defaultSettings);
@@ -143,6 +154,11 @@ function createSettingsStore() {
 		save();
 	}
 
+	function updateMermaid(partial: Partial<DocumentSettings['mermaid']>) {
+		settings.mermaid = { ...settings.mermaid, ...partial };
+		save();
+	}
+
 	function updateHeading(level: keyof DocumentSettings['headings'], style: Partial<HeadingStyle>) {
 		settings.headings[level] = { ...settings.headings[level], ...style };
 		save();
@@ -168,6 +184,7 @@ function createSettingsStore() {
 		updateHeader,
 		updateFooter,
 		updateTheme,
+		updateMermaid,
 		updateHeading,
 		reset,
 		setLogo
