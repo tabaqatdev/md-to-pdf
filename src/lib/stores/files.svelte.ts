@@ -76,6 +76,7 @@ function createFilesStore() {
 						);
 						// Write to OPFS
 						await opfs.writeFile(path, content);
+						console.log(`[FilesStore] ✓ Successfully wrote ${path} to OPFS`);
 
 						// If this is the currently open file, update editor content too!
 						if (currentFile && currentFile.path === path) {
@@ -88,8 +89,12 @@ function createFilesStore() {
 					}
 				}
 				// TODO: Handle deletions via diff if needed
+				console.log('[FilesStore] Calling refresh() to update file tree...');
 				await refresh();
-				console.log('[FilesStore] Remote sync complete, file tree refreshed');
+				console.log(
+					'[FilesStore] Remote sync complete, file tree refreshed. Files count:',
+					files.length
+				);
 			} catch (e) {
 				console.error('[FilesStore] Error applying remote changes:', e);
 			} finally {
@@ -126,10 +131,16 @@ function createFilesStore() {
 	async function refresh() {
 		try {
 			const newFiles = await opfs.listDirectory();
+			console.log(
+				'[FilesStore] OPFS returned files:',
+				newFiles.map((f) => f.name)
+			);
 			files = [...newFiles];
 			console.log(
-				'Refresh complete, files:',
-				files.map((f) => f.name)
+				'[FilesStore] Refresh complete, files state updated:',
+				files.map((f) => f.name),
+				'Count:',
+				files.length
 			);
 
 			// Also sync LOCAL files to Loro if acting as Host and Loro is empty
