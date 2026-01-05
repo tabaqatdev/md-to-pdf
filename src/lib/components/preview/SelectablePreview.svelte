@@ -1,10 +1,16 @@
 <script lang="ts">
   import MarkdownPreview from "./MarkdownPreview.svelte";
+  import { portal } from "$lib/actions/portal";
+  import { Edit, Trash2, TableProperties } from "lucide-svelte";
 
   interface Props {
     content: string;
     onEdit?: (originalText: string, newText: string) => void;
-    onEditTable?: (tableMarkdown: string) => void;
+    onEditTable?: (
+      tableMarkdown: string,
+      startLine?: number,
+      endLine?: number
+    ) => void;
   }
 
   let { content, onEdit, onEditTable }: Props = $props();
@@ -75,14 +81,20 @@
 
     // Position toolbar near selection
     const rect = range.getBoundingClientRect();
-    const containerRect = containerRef.getBoundingClientRect();
 
+    // Fixed positioning - relative to viewport (works with portal)
     toolbarPosition = {
-      x: rect.left - containerRect.left + rect.width / 2,
-      y: rect.top - containerRect.top - 50, // Above selection
+      x: rect.left + rect.width / 2,
+      y: rect.top - 50,
     };
 
     showToolbar = true;
+  }
+
+  function handleScroll() {
+    if (showToolbar) {
+      showToolbar = false;
+    }
   }
 
   function handleEdit() {
@@ -93,7 +105,16 @@
       const tableMarkdown = extractTableMarkdown(
         selectedElement as HTMLTableElement
       );
-      onEditTable(tableMarkdown);
+
+      const startLine = selectedElement!.hasAttribute("data-source-line")
+        ? parseInt(selectedElement!.getAttribute("data-source-line")!)
+        : undefined;
+
+      const endLine = selectedElement!.hasAttribute("data-source-line-end")
+        ? parseInt(selectedElement!.getAttribute("data-source-line-end")!)
+        : undefined;
+
+      onEditTable(tableMarkdown, startLine, endLine);
       showToolbar = false;
       return;
     }
@@ -188,34 +209,50 @@
   $effect(() => {
     document.addEventListener("selectionchange", handleSelectionChange);
 
+    // Add scroll listener to the inner preview container to hide toolbar on scroll
+    const scrollContainer = containerRef?.querySelector(".preview-container");
+    if (scrollContainer) {
+      scrollContainer.addEventListener("scroll", handleScroll);
+    }
+
     return () => {
       document.removeEventListener("selectionchange", handleSelectionChange);
+      if (scrollContainer) {
+        scrollContainer.removeEventListener("scroll", handleScroll);
+      }
     };
   });
 </script>
 
-<div bind:this={containerRef} class="selection-preview relative">
+<div bind:this={containerRef} class="selection-preview relative h-full">
   <MarkdownPreview {content} />
 
   {#if showToolbar}
     <div
-      class="selection-toolbar"
-      style="left: {toolbarPosition.x}px; top: {toolbarPosition.y}px;"
+      use:portal
+      class="selection-toolbar flex items-center gap-1 rounded-lg border p-1 shadow-lg animate-in fade-in zoom-in duration-200"
+      style="position: fixed; z-index: 2147483647; left: {toolbarPosition.x}px; top: {toolbarPosition.y}px; isolation: isolate; background-color: rgb(255, 255, 255) !important; opacity: 1 !important; border-color: #e5e7eb;"
     >
       <button
-        class="toolbar-btn"
+        class="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         onclick={handleEdit}
         title={isTableSelected ? "Edit table" : "Edit selection"}
       >
-        ✏️ {isTableSelected ? "Edit Table" : "Edit"}
+        {#if isTableSelected}
+          <TableProperties class="mr-1 h-3.5 w-3.5" />
+          Edit Table
+        {:else}
+          <Edit class="mr-1 h-3.5 w-3.5" />
+          Edit
+        {/if}
       </button>
       {#if !isTableSelected}
         <button
-          class="toolbar-btn delete"
+          class="inline-flex h-7 w-7 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           onclick={handleDelete}
           title="Delete element"
         >
-          🗑️
+          <Trash2 class="h-4 w-4" />
         </button>
       {/if}
     </div>
@@ -228,7 +265,7 @@
   }
 
   .selection-toolbar {
-    position: absolute;
+    position: fixed;
     transform: translateX(-50%);
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
@@ -237,7 +274,7 @@
     display: flex;
     gap: 2px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    z-index: 100;
+    z-index: 9999;
     animation: fadeIn 0.15s ease-out;
   }
 
@@ -250,31 +287,6 @@
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
-  }
-
-  .toolbar-btn {
-    background: hsl(var(--background));
-    border: 1px solid hsl(var(--border));
-    color: hsl(var(--foreground));
-    padding: 8px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s;
-    white-space: nowrap;
-  }
-
-  .toolbar-btn:hover {
-    background: hsl(var(--accent));
-    color: hsl(var(--accent-foreground));
-    border-color: hsl(var(--accent));
-  }
-
-  .toolbar-btn.delete:hover {
-    background: hsl(0 84% 60%);
-    color: white;
-    border-color: hsl(0 84% 60%);
   }
 
   :global([contenteditable="true"]) {

@@ -185,7 +185,7 @@
                 type="number"
                 min="8"
                 max="16"
-                value={settingsStore.current.fontSize}
+                value={settingsStore.current.fontSize.toString()}
                 onchange={(e) =>
                   settingsStore.update({
                     fontSize: parseInt(e.currentTarget.value) || 10,
@@ -203,7 +203,7 @@
                 min="1"
                 max="3"
                 step="0.1"
-                value={settingsStore.current.lineHeight}
+                value={settingsStore.current.lineHeight.toString()}
                 onchange={(e) =>
                   settingsStore.update({
                     lineHeight: parseFloat(e.currentTarget.value) || 1.6,

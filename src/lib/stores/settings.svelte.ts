@@ -62,17 +62,17 @@ export const defaultSettings: DocumentSettings = {
 	lineHeight: 1.6,
 	pageSize: 'A4',
 	margins: {
-		top: '2.5cm',
-		bottom: '2.5cm',
-		left: '2cm',
-		right: '2cm'
+		top: '1.5cm',
+		bottom: '1.5cm',
+		left: '1.5cm',
+		right: '1.5cm'
 	},
 	theme: {
-		tableHeader: '#003366', // Was tied to H1
-		links: '#2980b9',       // Was tied to H2
-		blockquotes: '#2980b9', // Was tied to H2
-		codeBlock: '#f8f8f8',
-		textColor: '#333333'
+		tableHeader: '#2c3e50', // PwC/McKinsey style dark blue
+		links: '#2980b9',
+		blockquotes: '#2980b9',
+		codeBlock: '#f8f9fa',
+		textColor: '#2d3436'
 	},
 	header: {
 		enabled: false,
@@ -80,17 +80,17 @@ export const defaultSettings: DocumentSettings = {
 		showOnFirstPage: true
 	},
 	footer: {
-		enabled: true,
+		enabled: false,
 		showPageNumbers: true,
 		pageNumberFormat: '1'
 	},
 	headings: {
-		h1: { color: '#003366', fontSize: '18pt', borderBottom: true },
+		h1: { color: '#2c3e50', fontSize: '18pt', borderBottom: true },
 		h2: { color: '#2980b9', fontSize: '14pt', borderBottom: true },
-		h3: { color: '#16a085', fontSize: '12pt', borderBottom: false },
-		h4: { color: '#333333', fontSize: '11pt', borderBottom: false },
-		h5: { color: '#555555', fontSize: '10pt', borderBottom: false },
-		h6: { color: '#777777', fontSize: '10pt', borderBottom: false }
+		h3: { color: '#34495e', fontSize: '12pt', borderBottom: false },
+		h4: { color: '#2d3436', fontSize: '11pt', borderBottom: false },
+		h5: { color: '#636e72', fontSize: '10pt', borderBottom: false },
+		h6: { color: '#b2bec3', fontSize: '10pt', borderBottom: false }
 	}
 };
 

@@ -287,7 +287,7 @@
           <Button
             variant="default"
             size="sm"
-            onclick={() => handleRestore(selectedVersion)}
+            onclick={() => selectedVersion && handleRestore(selectedVersion)}
           >
             <RotateCcw class="me-1 h-3 w-3" />
             {i18n.t.history?.restore || "Restore"}

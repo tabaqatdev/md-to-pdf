@@ -24,16 +24,13 @@
     FilePlus,
     Eye,
     Code2,
+    ArrowLeftRight,
   } from "lucide-svelte";
 
-  // Get current mode value for reactivity
-  let currentMode = $derived(mode.current);
-
-  let showSidebar = $state(true);
-  let showSettings = $state(false);
-  let editorContent = $state("");
+  // ... (lines 29-35)
   let isDragging = $state(false);
   let viewMode = $state<"edit-only" | "split" | "preview-only">("split");
+  let scrollSync = $state(true); // Default to enabled
 
   // Resizable panel state
   let editorWidthPercent = $state(50); // 50% default
@@ -99,20 +96,46 @@
 
   // Handle table editing
   let editingTableMarkdown = $state<string | null>(null);
+  let editingTableStartLine = $state<number | undefined>(undefined);
+  let editingTableEndLine = $state<number | undefined>(undefined);
 
-  function handleTableEdit(tableMarkdown: string) {
+  function handleTableEdit(
+    tableMarkdown: string,
+    startLine?: number,
+    endLine?: number
+  ) {
     editingTableMarkdown = tableMarkdown;
+    editingTableStartLine = startLine;
+    editingTableEndLine = endLine;
   }
 
   function handleTableSave(newMarkdown: string) {
-    if (editingTableMarkdown && editorContent.includes(editingTableMarkdown)) {
+    if (
+      editingTableStartLine !== undefined &&
+      editingTableEndLine !== undefined
+    ) {
+      // Use line-based replacement for reliability
+      const lines = editorContent.split("\n");
+      const before = lines.slice(0, editingTableStartLine);
+      const after = lines.slice(editingTableEndLine);
+
+      const updatedContent = [...before, newMarkdown, ...after].join("\n");
+      handleContentChange(updatedContent);
+    } else if (
+      editingTableMarkdown &&
+      editorContent.includes(editingTableMarkdown)
+    ) {
+      // Fallback to string replacement
       const updatedContent = editorContent.replace(
         editingTableMarkdown,
         newMarkdown
       );
       handleContentChange(updatedContent);
     }
+
     editingTableMarkdown = null;
+    editingTableStartLine = undefined;
+    editingTableEndLine = undefined;
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -305,34 +328,42 @@
       <Separator orientation="vertical" class="h-6 md:hidden" />
 
       <!-- View Mode Toggle Group -->
-      <div class="flex gap-1 items-center">
-        <Button
-          variant={viewMode === "edit-only" ? "default" : "ghost"}
-          size="sm"
+      <div
+        class="flex items-center rounded-lg border bg-muted p-1 text-muted-foreground"
+      >
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 {viewMode ===
+          'edit-only'
+            ? 'bg-background text-foreground shadow-sm'
+            : 'hover:bg-background/50 hover:text-foreground'}"
           onclick={() => setViewMode("edit-only")}
           title="Edit Only"
         >
           <Code2 class="h-4 w-4" />
-        </Button>
-        <Button
-          variant={viewMode === "split" ? "default" : "ghost"}
-          size="sm"
+        </button>
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 {viewMode ===
+          'split'
+            ? 'bg-background text-foreground shadow-sm'
+            : 'hover:bg-background/50 hover:text-foreground'}"
           onclick={() => setViewMode("split")}
           title="Split View"
         >
           <div class="flex gap-0.5">
-            <Code2 class="h-3 w-3" />
-            <Eye class="h-3 w-3" />
+            <Code2 class="h-3.5 w-3.5" />
+            <Eye class="h-3.5 w-3.5" />
           </div>
-        </Button>
-        <Button
-          variant={viewMode === "preview-only" ? "default" : "ghost"}
-          size="sm"
+        </button>
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 {viewMode ===
+          'preview-only'
+            ? 'bg-background text-foreground shadow-sm'
+            : 'hover:bg-background/50 hover:text-foreground'}"
           onclick={() => setViewMode("preview-only")}
           title="Preview Only"
         >
           <Eye class="h-4 w-4" />
-        </Button>
+        </button>
       </div>
 
       <Separator orientation="vertical" class="h-6" />>
@@ -437,6 +468,8 @@
           </div>
 
           <!-- Resizable Divider -->
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
           <div
             class="resize-handle no-print"
             onmousedown={handleResizeStart}
@@ -456,7 +489,7 @@
             class:mobile-hidden={mobileView !== "preview"}
             style="--preview-width: {100 - editorWidthPercent}%;"
           >
-                        <SelectablePreview
+            <SelectablePreview
               content={editorContent}
               onEdit={handleSelectionEdit}
               onEditTable={handleTableEdit}
@@ -476,7 +509,7 @@
       {:else}
         <!-- No file open -->
         <div
-          class="flex h-full items-center justify-center text-muted-foreground"
+          class="flex h-full w-full items-center justify-center text-muted-foreground"
         >
           <div class="text-center">
             <p class="mb-2 text-lg">{i18n.t.app.title}</p>
