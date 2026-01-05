@@ -15,13 +15,13 @@
 
 <div class="flex h-full flex-col {className}">
 	<!-- Tabs -->
-	<div class="flex border-b border-border" role="tablist">
+	<div class="border-border flex border-b" role="tablist">
 		<button
 			type="button"
 			role="tab"
 			aria-selected={activeTab === 'files'}
 			class="flex flex-1 items-center justify-center gap-2 px-4 py-2 text-sm {activeTab === 'files'
-				? 'border-b-2 border-primary font-medium'
+				? 'border-primary border-b-2 font-medium'
 				: 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => (activeTab = 'files')}
 		>
@@ -32,8 +32,9 @@
 			type="button"
 			role="tab"
 			aria-selected={activeTab === 'history'}
-			class="flex flex-1 items-center justify-center gap-2 px-4 py-2 text-sm {activeTab === 'history'
-				? 'border-b-2 border-primary font-medium'
+			class="flex flex-1 items-center justify-center gap-2 px-4 py-2 text-sm {activeTab ===
+			'history'
+				? 'border-primary border-b-2 font-medium'
 				: 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => (activeTab = 'history')}
 		>

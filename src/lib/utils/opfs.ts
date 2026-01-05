@@ -67,10 +67,7 @@ class OPFSManager {
 		return current;
 	}
 
-	private async getFileHandle(
-		path: string,
-		create = false
-	): Promise<FileSystemFileHandle> {
+	private async getFileHandle(path: string, create = false): Promise<FileSystemFileHandle> {
 		const parts = path.split('/').filter(Boolean);
 		const fileName = parts.pop();
 		if (!fileName) throw new Error('Invalid file path');
@@ -223,8 +220,11 @@ class OPFSManager {
 			}
 			return a.name.localeCompare(b.name);
 		});
-		
-		console.log(`OPFS listDirectory result:`, sorted.map(e => `${e.name} (${e.type})`));
+
+		console.log(
+			`OPFS listDirectory result:`,
+			sorted.map((e) => `${e.name} (${e.type})`)
+		);
 		return sorted;
 	}
 

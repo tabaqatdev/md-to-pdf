@@ -70,7 +70,10 @@ function createFilesStore() {
 			const newFiles = await opfs.listDirectory();
 			// Force reactivity by creating a new array reference
 			files = [...newFiles];
-			console.log('Refresh complete, files:', files.map((f) => f.name));
+			console.log(
+				'Refresh complete, files:',
+				files.map((f) => f.name)
+			);
 		} catch (e) {
 			console.error('Failed to refresh files:', e);
 			files = [];
@@ -251,7 +254,10 @@ function createFilesStore() {
 			}
 
 			await refresh();
-			console.log('Rename completed, files:', files.map((f) => f.path));
+			console.log(
+				'Rename completed, files:',
+				files.map((f) => f.path)
+			);
 		} catch (e) {
 			console.error('Rename error:', e);
 			error = e instanceof Error ? e.message : 'Failed to rename';

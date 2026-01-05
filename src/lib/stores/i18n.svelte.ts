@@ -20,8 +20,8 @@ function getInitialLanguage(): Language {
 
 function createI18nStore() {
 	let language = $state<Language>('en');
-	let direction = $derived<Direction>(language === 'ar' ? 'rtl' : 'ltr');
-	let t = $derived(translations[language]);
+	const direction = $derived<Direction>(language === 'ar' ? 'rtl' : 'ltr');
+	const t = $derived(translations[language]);
 
 	function init() {
 		language = getInitialLanguage();

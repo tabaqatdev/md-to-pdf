@@ -424,23 +424,23 @@ When exporting to PDF:
 
 ```css
 @media print {
-  .editor-pane,
-  .no-print {
-    display: none;
-  }
-  .preview-pane {
-    overflow: visible;
-    height: auto;
-  }
-  h1,
-  h2,
-  h3 {
-    page-break-after: avoid;
-  }
-  table,
-  pre {
-    page-break-inside: avoid;
-  }
+	.editor-pane,
+	.no-print {
+		display: none;
+	}
+	.preview-pane {
+		overflow: visible;
+		height: auto;
+	}
+	h1,
+	h2,
+	h3 {
+		page-break-after: avoid;
+	}
+	table,
+	pre {
+		page-break-inside: avoid;
+	}
 }
 ```
 

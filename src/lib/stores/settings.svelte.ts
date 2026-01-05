@@ -106,8 +106,8 @@ function createSettingsStore() {
 			try {
 				const parsed = JSON.parse(stored);
 				// Deep merge to ensure new theme keys exist if loading old settings
-				settings = { 
-					...defaultSettings, 
+				settings = {
+					...defaultSettings,
 					...parsed,
 					theme: { ...defaultSettings.theme, ...parsed.theme }
 				};

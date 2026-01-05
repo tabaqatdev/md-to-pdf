@@ -1,7 +1,13 @@
 <script lang="ts" module>
 	import { cn } from '$lib/utils/cn';
 
-	export type ButtonVariant = 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+	export type ButtonVariant =
+		| 'default'
+		| 'destructive'
+		| 'outline'
+		| 'secondary'
+		| 'ghost'
+		| 'link';
 	export type ButtonSize = 'default' | 'sm' | 'lg' | 'icon';
 
 	export const buttonVariants = {
@@ -41,7 +47,7 @@
 
 <button
 	class={cn(
-		'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+		'ring-offset-background focus-visible:ring-ring inline-flex items-center justify-center rounded-md text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
 		buttonVariants[variant],
 		buttonSizes[size],
 		className
