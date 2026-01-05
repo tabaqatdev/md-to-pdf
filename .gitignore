@@ -8,7 +8,7 @@ dist/
 .env.local
 .env.*.local
 package-lock.json
-pnpm-lock.yaml
+package-lock.json
 yarn.lock
 
 # OPFS data (browser storage - not needed in repo)
