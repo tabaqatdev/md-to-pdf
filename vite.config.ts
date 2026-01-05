@@ -7,7 +7,7 @@ import topLevelAwait from 'vite-plugin-top-level-await';
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit(), wasm(), topLevelAwait()],
 	optimizeDeps: {
-		include: ['mermaid'],
+		include: [],
 		exclude: ['loro-crdt']
 	},
 	build: {

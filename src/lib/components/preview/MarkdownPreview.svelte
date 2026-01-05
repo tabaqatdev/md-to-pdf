@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { processMarkdown, generateSettingsCSS } from '$lib/utils/markdown';
 	import { settingsStore } from '$lib/stores/settings.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
@@ -25,7 +25,8 @@
 
 			// Render mermaid diagrams after DOM update
 			if (result.mermaidBlocks.length > 0 && mermaidReady) {
-				requestAnimationFrame(() => {
+				// Use tick() to ensure DOM is updated with new HTML before searching for .mermaid elements
+				tick().then(() => {
 					renderMermaid();
 				});
 			}
@@ -64,8 +65,14 @@
 		if (typeof window === 'undefined' || !previewContainer) return;
 
 		try {
-			const mermaid = await import('mermaid');
-			mermaid.default.initialize({
+			// Small delay to ensure DOM is fully ready (tick() usually enough but this is safer for complex rendering)
+			await tick();
+
+			const mermaidModule = await import('mermaid');
+			// Handle potential CJS/ESM interop differences
+			const mermaid = mermaidModule.default || mermaidModule;
+
+			mermaid.initialize({
 				startOnLoad: false,
 				theme: 'default',
 				securityLevel: 'loose',
@@ -96,7 +103,7 @@
 
 			const mermaidDivs = previewContainer.querySelectorAll('.mermaid');
 			if (mermaidDivs.length > 0) {
-				await mermaid.default.run({
+				await mermaid.run({
 					nodes: mermaidDivs as NodeListOf<HTMLElement>
 				});
 			}
@@ -109,6 +116,10 @@
 		try {
 			await import('mermaid');
 			mermaidReady = true;
+			// Trigger a check in case content was loaded before mermaid
+			if (processedHtml && previewContainer?.querySelectorAll('.mermaid').length > 0) {
+				renderMermaid();
+			}
 		} catch (error) {
 			console.error('Failed to load mermaid:', error);
 		}
