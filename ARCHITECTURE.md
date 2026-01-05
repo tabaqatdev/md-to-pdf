@@ -1,5 +1,653 @@
 # MD-to-PDF Architecture
 
+This document describes the architecture, state management, data flow, and collaborative features of the MD-to-PDF application.
+
+## Overview
+
+MD-to-PDF is a SvelteKit-based single-page application (SPA) that converts Markdown to PDF with full RTL (Arabic) language support and **real-time collaborative editing**. It runs entirely in the browser using OPFS (Origin Private File System) for persistent storage and LoroList CRDT for conflict-free collaboration.
+
+## Technology Stack
+
+```mermaid
+graph TB
+    subgraph Frontend
+        SK[SvelteKit + Svelte 5]
+        TW[Tailwind CSS 4]
+        CM[CodeMirror 6]
+        MD[marked.js]
+        MM[mermaid.js]
+    end
+
+    subgraph Collaboration
+        LORO[Loro CRDT]
+        PEER[PeerJS WebRTC]
+        STUN[STUN Servers]
+    end
+
+    subgraph Storage
+        OPFS[OPFS - Origin Private File System]
+        LS[LocalStorage]
+        COI[COI Service Worker]
+    end
+
+    subgraph Output
+        PDF[Browser Print API]
+    end
+
+    SK --> CM
+    SK --> MD
+    MD --> MM
+    SK --> LORO
+    LORO --> PEER
+    PEER --> STUN
+    SK --> OPFS
+    COI --> OPFS
+    SK --> LS
+    SK --> PDF
+```
+
+## Key Features
+
+- **Collaborative Editing**: Real-time sync using Loro CRDT + PeerJS WebRTC
+- **Persistent Storage**: OPFS for local file management
+- **Cross-Origin Isolation**: Service worker enables OPFS on GitHub Pages
+- **RTL Support**: Full Arabic language support
+- **Version History**: Track file changes over time
+- **No Backend Required**: Pure client-side application
+
+---
+
+## Application Structure
+
+```
+md-to-pdf/
+├── src/
+│   ├── routes/
+│   │   ├── +layout.svelte      # Root layout, store initialization
+│   │   ├── +layout.ts          # SPA mode config (ssr: false)
+│   │   └── +page.svelte        # Main application page
+│   ├── lib/
+│   │   ├── stores/             # State management
+│   │   │   ├── files.svelte.ts # File operations store
+│   │   │   ├── loro.svelte.ts  # Collaboration & CRDT store
+│   │   │   ├── history.svelte.ts # Version history store
+│   │   │   ├── settings.svelte.ts # Document settings store
+│   │   │   └── i18n.svelte.ts  # Internationalization store
+│   │   ├── components/         # UI components
+│   │   ├── utils/
+│   │   │   ├── opfs.ts         # OPFS file system wrapper
+│   │   │   ├── markdown.ts     # Markdown processing
+│   │   │   └── cn.ts           # Class name utility
+│   │   └── types/
+│   │       └── file-system-access.d.ts # OPFS TypeScript declarations
+│   ├── app.html                # Service worker registration
+│   └── app.css                 # Global styles, theming
+├── static/
+│   └── coi-serviceworker.js    # Cross-origin isolation for OPFS
+└── svelte.config.js            # SvelteKit config (adapter-static)
+```
+
+---
+
+## State Management
+
+The application uses Svelte 5 runes (`$state`, `$derived`, `$effect`) for reactive state management.
+
+### Store Architecture
+
+```mermaid
+flowchart TB
+    subgraph Stores
+        FS[filesStore]
+        LORO[loroStore]
+        HS[historyStore]
+        SS[settingsStore]
+        I18N[i18n]
+    end
+
+    subgraph Storage
+        OPFS[(OPFS)]
+        LS[(LocalStorage)]
+    end
+
+    subgraph Network
+        PEER[PeerJS Server]
+        PEERS[Other Peers]
+    end
+
+    subgraph Components
+        PAGE[+page.svelte]
+        SB[Sidebar]
+        ED[MarkdownEditor]
+        PR[MarkdownPreview]
+    end
+
+    FS <--> OPFS
+    FS <--> LORO
+    LORO <--> PEER
+    PEER <--> PEERS
+    HS <--> OPFS
+    SS <--> LS
+    I18N <--> LS
+
+    PAGE --> FS
+    PAGE --> LORO
+    SB --> FS
+    ED --> FS
+    PR --> FS
+```
+
+### Files Store (`files.svelte.ts`)
+
+Manages file operations, auto-save, and current editor state.
+
+**State Properties:**
+
+- `files: FileNode[]` - Tree of files and folders
+- `currentFile: EditorFile | null` - Currently open file
+- `isLoading: boolean` - Loading state
+- `error: string | null` - Error message
+- `autoSaveEnabled: boolean` - Auto-save toggle (default: true)
+
+**Key Functions:**
+
+- `init()` - Initialize OPFS, history store, and load file list
+- `setScope(scope)` - Set OPFS scope for room isolation
+- `createFile(path, name)` - Create new markdown file
+- `openFile(path)` - Load and open file
+- `saveCurrentFile()` - Save current file to OPFS (creates version)
+- `updateContent(content)` - Update editor content (schedules auto-save)
+- `syncAllToLoro(files)` - Sync local files to Loro CRDT
+
+**Logging** (prefix: `[FilesStore]`):
+
+- Remote change detection
+- File sync operations
+- OPFS read/write operations
+- Loro synchronization
+
+### Loro Store (`loro.svelte.ts`)
+
+Manages CRDT (Conflict-free Replicated Data Type) and P2P connections.
+
+**State Properties:**
+
+- `doc: LoroDoc` - CRDT document
+- `ephemeral: EphemeralStore` - Presence/awareness data
+- `filesMap: LoroMap` - Map of all files
+- `awareness: PeerState[]` - List of connected peers
+- `connections: SvelteMap<string, DataConnection>` - Active P2P connections
+- `roomId: string | null` - Current collaboration room
+- `isHost: boolean` - Whether this peer is the host
+
+**Key Functions:**
+
+- `joinRoom(roomId)` - Join or create a collaboration room
+- `setFile(path, content)` - Set file content in CRDT
+- `getFile(path)` - Get file content from CRDT
+- `listFiles()` - List all files in CRDT
+- `setChangeCallback(cb)` - Register callback for remote changes
+
+**Logging** (prefix: `[LoroStore]`):
+
+- Room joining/hosting
+- PeerJS connection lifecycle
+- ICE candidate gathering
+- Data sync operations
+- Error handling
+
+---
+
+## Collaborative Editing Architecture
+
+### Room-Based Collaboration
+
+```mermaid
+sequenceDiagram
+    participant UserA as User A (Host)
+    participant PeerServer as PeerJS Server
+    participant UserB as User B (Client)
+
+    UserA->>UserA: Create room (hash)
+    UserA->>PeerServer: Claim room ID
+    PeerServer-->>UserA: Confirmed as host
+    UserA->>UserA: Load local files to Loro
+
+    UserB->>UserB: Join via room URL
+    UserB->>PeerServer: Attempt to claim room ID
+    PeerServer-->>UserB: ID taken, join as client
+    UserB->>UserA: Connect via WebRTC
+
+    UserA->>UserB: Send Loro snapshot
+    UserB->>UserB: Apply snapshot to Loro
+    UserB->>UserB: Sync Loro files to OPFS
+    UserB->>UserB: Refresh file list
+
+    Note over UserA,UserB: Both can now edit collaboratively
+
+    UserA->>UserA: Edit file
+    UserA->>UserB: Send Loro update
+    UserB->>UserB: Apply update
+
+    UserB->>UserB: Edit file
+    UserB->>UserA: Send Loro update
+    UserA->>UserA: Apply update
+```
+
+### CRDT Conflict Resolution
+
+Loro uses a CRDT algorithm that automatically resolves conflicts:
+
+- **Last-write-wins** for simple text
+- **Operational transforms** for concurrent edits
+- **Vector clocks** for causality tracking
+
+### File Isolation by Room
+
+Each collaboration room has isolated storage:
+
+```
+OPFS Root/
+└── md-to-pdf/
+    ├── rooms/
+    │   ├── room-abc-123/
+    │   │   ├── file1.md
+    │   │   └── file2.md
+    │   └── room-xyz-789/
+    │       └── doc.md
+    └── (default files - no room)
+        └── local-only.md
+```
+
+---
+
+## Cross-Origin Isolation for OPFS
+
+### Problem
+
+Origin Private File System (OPFS) requires cross-origin isolation headers:
+
+- `Cross-Origin-Embedder-Policy: require-corp`
+- `Cross-Origin-Opener-Policy: same-origin`
+
+GitHub Pages doesn't support custom headers.
+
+### Solution: COI Service Worker
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant SW as COI Service Worker
+    participant App
+
+    Browser->>SW: Register service worker
+    SW->>SW: Install & activate
+    Browser->>App: Load application
+    SW->>SW: Intercept fetch requests
+    SW->>Browser: Add COOP/COEP headers
+    Browser->>Browser: Enable crossOriginIsolated
+    App->>Browser: navigator.storage.getDirectory()
+    Browser-->>App: ✓ OPFS access granted
+```
+
+**Implementation**: `static/coi-serviceworker.js`
+
+- Intercepts all fetch requests
+- Adds required headers to responses
+- Enables `crossOriginIsolated` globally
+
+**Registration**: `src/app.html`
+
+- Registers service worker on page load
+- Auto-reloads once when isolation activated
+
+---
+
+## PeerJS Connection Architecture
+
+### ICE Negotiation
+
+```mermaid
+stateDiagram-v2
+    [*] --> New: peer.connect()
+    New --> Checking: ICE gathering
+    Checking --> Connected: Direct P2P
+    Checking --> Failed: No route
+    Connected --> [*]: ✓ Data flowing
+    Failed --> [*]: ✗ Connection impossible
+
+    Note right of Checking: Uses STUN servers\nfor NAT traversal
+    Note right of Connected: WebRTC data channel\nfor Loro sync
+```
+
+### STUN Server Configuration
+
+Currently using **6 STUN servers** for redundancy:
+
+- `stun.l.google.com:19302` (primary)
+- `stun1-4.l.google.com:19302` (fallbacks)
+- `stun.cloudflare.com:3478`
+
+**No TURN servers** configured (requires credentials).
+
+For production, consider adding TURN for relay:
+
+- Twilio STUN/TURN
+- Xirsys
+- Cloudflare Calls
+- Self-hosted coturn
+
+---
+
+## Data Flow
+
+### Initialization Flow
+
+```mermaid
+sequenceDiagram
+    participant Page as +page.svelte
+    participant Files as filesStore
+    participant Loro as loroStore
+    participant OPFS
+
+    Page->>Files: init()
+    Files->>OPFS: opfs.init()
+    OPFS-->>Files: ✓ Initialized
+    Files->>Files: historyStore.init()
+    Files->>OPFS: listDirectory()
+    OPFS-->>Files: FileNode[]
+    Files->>Files: Restore last file
+    Files->>Loro: setupLoroSync()
+    Loro->>Loro: setChangeCallback()
+    Loro->>Loro: setHostCallback()
+    Page->>Page: Check URL hash for room
+    alt Room in URL
+        Page->>Files: setScope('rooms/{roomId}')
+        Page->>Loro: joinRoom(roomId)
+    end
+```
+
+### File Edit & Save Flow (Local Only)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Editor as MarkdownEditor
+    participant Page as +page.svelte
+    participant Files as filesStore
+    participant OPFS
+    participant Loro as loroStore
+
+    User->>Editor: Type content
+    Editor->>Page: onchange(content)
+    Page->>Files: updateContent(content)
+    Files->>Files: currentFile.isDirty = true
+    Files->>Files: scheduleAutoSave()
+
+    Note over Files: 2 seconds pass
+
+    Files->>Files: saveCurrentFile()
+    Files->>OPFS: writeFile(path, content)
+    Files->>Loro: setFile(path, content)
+    Loro->>Loro: Broadcast to peers (if any)
+```
+
+### Collaborative Edit Flow
+
+```mermaid
+sequenceDiagram
+    participant Host
+    participant HostLoro as Host Loro
+    participant Client
+    participant ClientLoro as Client Loro
+
+    Host->>Host: Edit file
+    Host->>HostLoro: updateContent()
+    HostLoro->>HostLoro: Generate update
+    HostLoro->>ClientLoro: Send update via WebRTC
+    ClientLoro->>ClientLoro: Apply update
+    ClientLoro->>Client: Trigger changeCallback
+    Client->>Client: Write to OPFS
+    Client->>Client: Update UI
+
+    Note over Host,Client: Changes appear in real-time
+```
+
+---
+
+## Logging Strategy
+
+### Log Prefixes
+
+All console logs use prefixes for easy filtering:
+
+| Prefix           | Component              | Purpose                |
+| ---------------- | ---------------------- | ---------------------- |
+| `[COI]`          | Cross-Origin Isolation | Service worker status  |
+| `[OPFS]`         | OPFS Manager           | File system operations |
+| `[FilesStore]`   | Files Store            | File management & sync |
+| `[LoroStore]`    | Loro Store             | CRDT operations & P2P  |
+| `[HistoryStore]` | History Store          | Version management     |
+| `[Page]`         | Page Component         | Lifecycle & routing    |
+
+### Filtering Logs in DevTools
+
+```javascript
+// Show only OPFS logs
+/\[OPFS\]/
+
+// Show only connection logs
+/\[LoroStore\].*connection/i
+
+// Show all collaboration logs
+/\[(FilesStore|LoroStore)\]./
+
+// Hide verbose logs
+!/ICE candidate/
+```
+
+### Critical Log Messages
+
+**Successful initialization:**
+
+```
+[COI] Already cross-origin isolated
+[OPFS] Successfully initialized. Cross-origin isolated: true
+[LoroStore] Successfully claimed Room ID. I am Host: <id>
+[LoroStore] ✓ Connection ESTABLISHED with: <peer-id>
+```
+
+**Connection issues:**
+
+```
+[LoroStore] ICE connection failed/disconnected
+[LoroStore] Connection failed completely
+ERROR PeerJS: Lost connection to server
+```
+
+**Sync issues:**
+
+```
+[FilesStore] Skipping initial sync. Conditions met? false
+[FilesStore] Error applying remote changes
+```
+
+---
+
+## Error Handling
+
+### OPFS Errors
+
+```mermaid
+flowchart TD
+    A[Try OPFS Init] --> B{Success?}
+    B -->|Yes| C[Check crossOriginIsolated]
+    B -->|No| D{Error Type}
+
+    D -->|SecurityError| E[Cross-origin isolation required<br/>→ Reload page]
+    D -->|NotSupportedError| F[Browser doesn't support OPFS<br/>→ Inform user]
+
+    C -->|true| G[✓ Ready to use]
+    C -->|false| H[Warn: May not work properly]
+```
+
+### PeerJS ErrorsCheck error type and provide specific guidance:
+
+- `network` - Check internet connection
+- `server-error` - PeerJS server down, retry
+- `socket-error`/`socket-closed` - Connection lost
+- `unavailable-id` - Expected when joining as client
+
+### Storage Fallback
+
+Currently, **no fallback** to IndexedDB or localStorage. Future enhancement.
+
+---
+
+## Troubleshooting Guide
+
+### Issue: Files Don't Sync Between Peers
+
+**Symptoms:**
+
+- Host creates file, client sidebar stays empty
+- ICE state stays at "new", never reaches "connected"
+
+**Diagnosis:**
+
+```javascript
+// In console, check:
+loroStore.connections; // Should show peer connections
+loroStore.isHost; // Should be true on one peer, false on others
+crossOriginIsolated; // Should be true
+```
+
+**Possible causes:**
+
+1. **WebRTC blocked** - Corporate firewall, VPN
+2. **No TURN server** - Direct P2P failed, need relay
+3. **Different networks** - Use TURN server
+
+**Logs to watch:**
+
+```
+[LoroStore] ICE connection state changed to: checking
+[LoroStore] ICE candidate: host/srflx/relay
+[LoroStore] ✓ Connection ESTABLISHED
+```
+
+### Issue: OPFS Access Denied
+
+**Symptoms:**
+
+```
+Failed to initialize OPFS: DOMException: Security error
+```
+
+**Solution:**
+
+1. Check `crossOriginIsolated` in console (should be `true`)
+2. Hard refresh page (Cmd+Shift+R)
+3. Clear service worker and reload
+4. Check browser supports OPFS (Chrome 86+, Firefox 111+, Safari 15.2+)
+
+### Issue: Service Worker Not Registering
+
+**Symptoms:**
+
+```
+[COI] Service worker registration failed
+```
+
+**Solution:**
+
+1. Ensure HTTPS (or localhost)
+2. Check browser DevTools → Application → Service Workers
+3. Unregister old workers
+4. Clear cache and reload
+
+---
+
+## Browser Compatibility
+
+| Feature                | Chrome | Firefox | Safari | Edge |
+| ---------------------- | ------ | ------- | ------ | ---- |
+| OPFS                   | 86+    | 111+    | 15.2+  | 86+  |
+| Service Workers        | ✅     | ✅      | ✅     | ✅   |
+| WebRTC                 | ✅     | ✅      | ⚠️     | ✅   |
+| Cross-Origin Isolation | ✅     | ✅      | ✅     | ✅   |
+
+⚠️ Safari: May have stricter WebRTC restrictions
+
+---
+
+## Performance Considerations
+
+### File Size Limits
+
+- **OPFS**: Limited by browser quota (typically GBs)
+- **Loro CRDT**: Grows with edit history
+- **WebRTC**: Max message size ~256KB (chunking needed for large files)
+
+### Optimization Strategies
+
+1. **Lazy load** history versions
+2. **Compress** Loro snapshots before sending
+3. **Debounce** OPFS writes (already implemented via auto save)
+4. **Prune** old Loro history periodically
+
+---
+
+## Security Considerations
+
+- **No Server** - All data stays in browser (OPFS + LocalStorage)
+- **P2P Encryption** - WebRTC uses DTLS/SRTP
+- **No Authentication** - Anyone with room URL can join
+- **XSS Prevention** - Markdown rendered with safe defaults
+- **Content Security** - Mermaid runs with `securityLevel: 'loose'` for diagram flexibility
+
+**Future**: Add password protection for rooms, end-to-end encryption
+
+---
+
+## Deployment
+
+### Build for Production
+
+```bash
+pnpm build
+```
+
+Output: `build/` directory
+
+### GitHub Pages
+
+1. Build creates static site in `build/`
+2. Service worker enables OPFS via COI headers
+3. Base path configured in `svelte.config.js`
+
+### Verification
+
+After deployment:
+
+1. Check console for `[COI] Already cross-origin isolated`
+2. Check `crossOriginIsolated === true`
+3. Test file creation and persistence
+4. Test room joining from multiple devices
+
+---
+
+## Future Enhancements
+
+1. **TURN Server Integration** - Reliable relay for all networks
+2. **IndexedDB Fallback** - When OPFS unavailable
+3. **End-to-End Encryption** - Encrypt before sending via WebRTC
+4. **Room Passwords** - Protect collaboration sessions
+5. **Persistent Rooms** - Use server to persist room state
+6. **Cursor Sharing** - Show where others are editing
+7. **Voice/Video Chat** - Add WebRTC media streams
+8. **Mobile App** - PWA with better mobile UX
+
 This document describes the architecture, state management, and data flow of the MD-to-PDF application.
 
 ## Overview

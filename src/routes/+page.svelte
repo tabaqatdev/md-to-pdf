@@ -81,8 +81,12 @@
 	// Sync editor content with current file
 	$effect(() => {
 		if (filesStore.currentFile) {
+			console.log('[Page] Current file changed:', filesStore.currentFile.path);
 			editorContent = filesStore.currentFile.content;
+			console.log('[Page] Initializing Loro with content length:', editorContent.length);
 			loroStore.init(editorContent);
+		} else {
+			console.log('[Page] No current file');
 		}
 	});
 
@@ -103,12 +107,22 @@
 	});
 
 	function handleContentChange(content: string) {
+		console.log(
+			'[Page] Content changed, length:',
+			content.length,
+			'File:',
+			filesStore.currentFile?.path
+		);
 		editorContent = content;
 		filesStore.updateContent(content);
 	}
 
 	async function handleSave() {
-		if (!filesStore.currentFile) return;
+		console.log('[Page] Save requested');
+		if (!filesStore.currentFile) {
+			console.warn('[Page] No current file to save');
+			return;
+		}
 
 		// If it's a new file, it will stay new until renamed via the header
 		// or we can just save it as Untitled.md if user really wants.
@@ -135,9 +149,12 @@
 			// We should enforce naming.
 			// We can dispatch an event or use a store signal to say "Focus Header"?
 			// Simplest: Just alert for now or let them know.
+			console.log('[Page] Cannot save new file without name');
 			alert(i18n.t.actions.enterFileName || 'Please name the file first');
 		} else {
+			console.log('[Page] Saving file:', filesStore.currentFile.path);
 			await filesStore.saveCurrentFile();
+			console.log('[Page] File saved successfully');
 		}
 	}
 
@@ -146,8 +163,10 @@
 	}
 
 	function handleNewFile() {
+		console.log('[Page] Creating new unsaved file');
 		filesStore.newUnsavedFile();
 		editorContent = '';
+		console.log('[Page] Editor content cleared for new file');
 	}
 
 	function toggleLanguage() {
