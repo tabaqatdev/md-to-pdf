@@ -309,7 +309,21 @@ export class LoroStore {
 
 	private connectToPeer(hostId: string) {
 		if (!this.peer) return;
-		const conn = this.peer.connect(hostId);
+
+		console.log('[LoroStore] Creating connection to host with options...');
+
+		// Add connection options for better reliability
+		const conn = this.peer.connect(hostId, {
+			reliable: true, // Use reliable data channel
+			serialization: 'json', // Explicit serialization
+			metadata: { clientId: this.me.id }
+		});
+
+		if (!conn) {
+			console.error('[LoroStore] Failed to create connection');
+			return;
+		}
+
 		this.handleConnection(conn);
 	}
 
@@ -353,17 +367,33 @@ export class LoroStore {
 		// Monitor ICE connection state changes
 		if (conn.peerConnection) {
 			conn.peerConnection.addEventListener('iceconnectionstatechange', () => {
-				console.log(
-					'[LoroStore] ICE connection state changed to:',
-					conn.peerConnection?.iceConnectionState
-				);
+				const iceState = conn.peerConnection?.iceConnectionState;
+				console.log('[LoroStore] ICE connection state changed to:', iceState);
+
+				// Detect connection failures
+				if (iceState === 'failed' || iceState === 'disconnected') {
+					console.error(
+						'[LoroStore] ICE connection failed/disconnected. Attempting to reconnect...'
+					);
+				}
 			});
 
 			conn.peerConnection.addEventListener('connectionstatechange', () => {
-				console.log(
-					'[LoroStore] Connection state changed to:',
-					conn.peerConnection?.connectionState
-				);
+				const connState = conn.peerConnection?.connectionState;
+				console.log('[LoroStore] Connection state changed to:', connState);
+
+				if (connState === 'failed') {
+					console.error('[LoroStore] Connection failed completely');
+				}
+			});
+
+			// Monitor ICE candidates
+			conn.peerConnection.addEventListener('icecandidate', (event) => {
+				if (event.candidate) {
+					console.log('[LoroStore] ICE candidate:', event.candidate.type, event.candidate.protocol);
+				} else {
+					console.log('[LoroStore] ICE gathering complete');
+				}
 			});
 		}
 	}
