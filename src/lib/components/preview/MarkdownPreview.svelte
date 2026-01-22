@@ -16,7 +16,6 @@
 	let isRTL = $state(false);
 	let mermaidReady = $state(false);
 
-	// Process markdown when content changes
 	// Process markdown when content changes or mermaid settings change
 	$effect(() => {
 		// Track dependencies
@@ -29,7 +28,6 @@
 
 			// Render mermaid diagrams after DOM update
 			if (result.mermaidBlocks.length > 0 && mermaidReady) {
-				// Use tick() to ensure DOM is updated with new HTML before searching for .mermaid elements
 				tick().then(() => {
 					renderMermaid();
 				});
@@ -65,18 +63,44 @@
 	let pageSize = $derived(settingsStore.current.pageSize);
 	let margins = $derived(settingsStore.current.margins);
 
+	// Calculate max diagram height based on page size and margins
+	let maxDiagramHeight = $derived.by(() => {
+		// Page sizes in mm
+		const pageSizes: Record<string, number> = {
+			A4: 297,
+			Letter: 279.4,
+			Legal: 355.6,
+			Canvas: 297
+		};
+		const pageHeight = pageSizes[pageSize] || 297;
+
+		// Parse margin values
+		const parseMargin = (m: string) => {
+			const v = parseFloat(m);
+			if (m.endsWith('cm')) return v * 10;
+			if (m.endsWith('in')) return v * 25.4;
+			return v; // mm
+		};
+
+		const topMargin = parseMargin(margins.top);
+		const bottomMargin = parseMargin(margins.bottom);
+		const headerSpace = headerEnabled ? 15 : 0;
+		const footerSpace = footerEnabled ? 10 : 0;
+
+		// Available height in mm, with 15mm safety buffer
+		const availableHeight = pageHeight - topMargin - bottomMargin - headerSpace - footerSpace - 15;
+		return `${availableHeight}mm`;
+	});
+
 	async function renderMermaid() {
 		if (typeof window === 'undefined' || !previewContainer) return;
 
 		try {
-			// Small delay to ensure DOM is fully ready (tick() usually enough but this is safer for complex rendering)
 			await tick();
 
 			const mermaidModule = await import('mermaid');
-			// Handle potential CJS/ESM interop differences
 			const mermaid = mermaidModule.default || mermaidModule;
 
-			// Get settings
 			const { fontFamily, fontSize } = settingsStore.current.mermaid || {
 				fontFamily: 'Arial, sans-serif',
 				fontSize: 14
@@ -90,12 +114,10 @@
 				themeVariables: {
 					fontFamily: fontFamily,
 					fontSize: `${fontSize}px`,
-					// Update specific node font sizes
 					nodeBorder: '1px solid #333',
 					mainBkg: '#fff',
 					nodeTextColor: '#333'
 				},
-				// Gantt chart settings - prevent text overlap
 				gantt: {
 					barHeight: 50,
 					barGap: 10,
@@ -109,11 +131,9 @@
 					axisFormat: '%Y-%m-%d',
 					useWidth: 1200
 				},
-				// Timeline settings
 				timeline: {
 					useMaxWidth: true
 				},
-				// General settings for better rendering
 				flowchart: {
 					useMaxWidth: true
 				}
@@ -121,7 +141,6 @@
 
 			const mermaidDivs = previewContainer.querySelectorAll('.mermaid');
 			if (mermaidDivs.length > 0) {
-				// Apply font size to container
 				mermaidDivs.forEach((div) => {
 					(div as HTMLElement).style.fontSize = `${fontSize}px`;
 				});
@@ -130,12 +149,11 @@
 					nodes: mermaidDivs as NodeListOf<HTMLElement>
 				});
 
-				// Post-processing for specific diagram types if needed
+				// Post-process SVGs to make them responsive
 				mermaidDivs.forEach((div) => {
 					const svg = div.querySelector('svg');
 					if (svg) {
-						svg.style.fontFamily = fontFamily;
-						svg.style.fontSize = `${fontSize}px`;
+						makeSvgResponsive(svg, fontFamily, fontSize);
 					}
 				});
 			}
@@ -144,11 +162,37 @@
 		}
 	}
 
+	// Make SVG responsive by ensuring viewBox is set and removing fixed dimensions
+	function makeSvgResponsive(svg: SVGElement, fontFamily: string, fontSize: number) {
+		// Get the intrinsic dimensions
+		let width = parseFloat(svg.getAttribute('width') || '0');
+		let height = parseFloat(svg.getAttribute('height') || '0');
+
+		// If no width/height, try getBoundingClientRect
+		if (!width || !height) {
+			const rect = svg.getBoundingClientRect();
+			width = rect.width || 100;
+			height = rect.height || 100;
+		}
+
+		// Ensure viewBox is set for proper scaling
+		if (!svg.getAttribute('viewBox') && width && height) {
+			svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+		}
+
+		// Remove fixed dimensions to allow CSS to control size
+		svg.removeAttribute('width');
+		svg.removeAttribute('height');
+
+		// Apply font styles
+		svg.style.fontFamily = fontFamily;
+		svg.style.fontSize = `${fontSize}px`;
+	}
+
 	onMount(async () => {
 		try {
 			await import('mermaid');
 			mermaidReady = true;
-			// Trigger a check in case content was loaded before mermaid
 			if (processedHtml && previewContainer?.querySelectorAll('.mermaid').length > 0) {
 				renderMermaid();
 			}
@@ -157,13 +201,9 @@
 		}
 
 		// Handle page numbering for print
-		// The CSS counter(page) works in @page margin boxes but has limited support
-		// As a fallback, we show page numbers in the table footer
 		const updatePageNumbers = () => {
 			const pageNumberElements = previewContainer?.querySelectorAll('.page-number');
 			pageNumberElements?.forEach((el) => {
-				// CSS counter(page) will be used in print
-				// For screen preview, just show "1" as placeholder
 				if (el instanceof HTMLElement) {
 					el.textContent = '';
 				}
@@ -184,7 +224,6 @@
 				margin: ${pageSize === 'Canvas' ? '0mm' : `${margins.top} ${margins.right} ${margins.bottom} ${margins.left}`};
 			}
 
-			/* First page can have different header */
 			@page :first {
 				${!headerShowOnFirstPage ? 'margin-top: ' + margins.top + ';' : ''}
 			}
@@ -196,11 +235,8 @@
 	bind:this={previewContainer}
 	class="preview-container h-full w-full overflow-auto bg-white {className}"
 	dir={isRTL ? 'rtl' : 'ltr'}
+	style="--max-diagram-height: {maxDiagramHeight};"
 >
-	<!--
-		Print Layout: Using table structure for repeating headers/footers
-		This is the most reliable cross-browser method for print headers/footers
-	-->
 	<table class="print-layout">
 		<thead class="print-header">
 			<tr>
@@ -254,15 +290,10 @@
 			</tr>
 		</tbody>
 	</table>
-
-	<!-- Browser native page numbers will be used upon print -->
-	{#if footerEnabled && footerCustomText}
-		<!-- Optional custom footer text if needed, otherwise handled by table footer -->
-	{/if}
 </div>
 
 <style>
-	/* Screen styles - hide print table structure */
+	/* Print layout table */
 	.print-layout {
 		width: 100%;
 		border-collapse: collapse;
@@ -273,7 +304,7 @@
 		vertical-align: top;
 	}
 
-	/* Header styling for screen */
+	/* Header styling */
 	.header-content {
 		display: flex;
 		align-items: center;
@@ -293,7 +324,7 @@
 		color: #4b5563;
 	}
 
-	/* Footer styling for screen */
+	/* Footer styling */
 	.footer-content {
 		display: flex;
 		align-items: center;
@@ -305,19 +336,6 @@
 		min-height: 2rem;
 	}
 
-	/* Page number element - show on screen as well for preview */
-	.print-page-number {
-		text-align: center;
-		padding: 0.5rem 0;
-		font-size: 0.875rem;
-		color: #6b7280;
-		border-top: 1px solid #e5e7eb;
-	}
-
-	.page-number-value::before {
-		content: '1'; /* Placeholder for screen preview */
-	}
-
 	/* Content area */
 	.content-cell {
 		padding: 2rem;
@@ -325,15 +343,13 @@
 
 	.preview-content {
 		font-family: var(--preview-font, 'Cairo', 'Helvetica Neue', Arial, sans-serif);
-		/* Force light mode colors regardless of global dark mode */
-		color: #333 !important;
-		background-color: white !important;
+		color: #333;
+		background-color: white;
 	}
 
-	/* Ensure preview container always has light background */
 	.preview-container {
-		background-color: white !important;
-		color: #333 !important;
+		background-color: white;
+		color: #333;
 	}
 
 	/* RTL specific styles */
@@ -353,12 +369,12 @@
 		padding-right: 0;
 	}
 
-	/* Code blocks always LTR with proper colors */
+	/* Code blocks - always LTR */
 	.preview-content :global(pre) {
 		direction: ltr;
 		text-align: left;
-		background-color: #f8f8f8 !important;
-		color: #333 !important;
+		background-color: #f8f8f8;
+		color: #333;
 		border: 1px solid #ddd;
 		border-radius: 4px;
 		padding: 1rem;
@@ -367,40 +383,36 @@
 	.preview-content :global(code) {
 		direction: ltr;
 		text-align: left;
-		background-color: #f5f5f5 !important;
-		color: #333 !important;
+		background-color: #f5f5f5;
+		color: #333;
 		padding: 0.2em 0.4em;
 		border-radius: 3px;
 		font-family: 'Courier New', monospace;
 	}
 
 	.preview-content :global(pre code) {
-		background-color: transparent !important;
+		background-color: transparent;
 		padding: 0;
 	}
 
 	/* ========== MERMAID DIAGRAMS ========== */
-	/* Container styles */
 	.preview-content :global(.mermaid) {
-		display: flex;
-		justify-content: center;
-		margin: 1.5rem 0;
-		width: 100%;
-		max-width: 100%;
-		direction: ltr !important;
+		display: block;
+		margin: 1.5rem auto;
 		text-align: center;
-		/* Page break control */
-		page-break-inside: avoid;
-		break-inside: avoid;
-		/* Overflow handling */
-		overflow-x: auto;
-		overflow-y: visible;
+		direction: ltr;
+		max-width: 100%;
+		/* Key constraint: limit height to fit on one page */
+		max-height: var(--max-diagram-height, 230mm);
+		overflow: hidden;
 	}
 
-	/* SVG sizing */
 	.preview-content :global(.mermaid svg) {
-		width: 100%;
+		display: block;
+		margin: 0 auto;
 		max-width: 100%;
+		max-height: var(--max-diagram-height, 230mm);
+		width: auto;
 		height: auto;
 		background-color: white;
 	}
@@ -421,7 +433,7 @@
 		font-weight: bold;
 	}
 
-	/* Table styles - using table-layout: fixed for better long text handling */
+	/* Table styles */
 	.preview-content :global(table) {
 		width: 100%;
 		max-width: 100%;
@@ -431,7 +443,6 @@
 	}
 
 	.preview-content :global(th) {
-		/* Color/Background removed to use dynamic setting */
 		padding: 0.5rem;
 		text-align: center;
 		border-width: 1px;
@@ -452,14 +463,13 @@
 		background-color: #f5f5f5;
 	}
 
-	/* Link styles - ensure long URLs wrap properly */
+	/* Link styles */
 	.preview-content :global(a) {
-		/* Color removed to use dynamic setting */
 		text-decoration: none;
 		word-break: break-all;
 	}
 
-	/* Ensure all block elements fit within container */
+	/* Block elements */
 	.preview-content :global(h1),
 	.preview-content :global(h2),
 	.preview-content :global(h3),
@@ -472,32 +482,18 @@
 	.preview-content :global(li),
 	.preview-content :global(div),
 	.preview-content :global(blockquote),
-	.preview-content :global(pre),
 	.preview-content :global(span) {
 		max-width: 100%;
 		overflow-wrap: break-word;
 	}
 
-	/* Force dark text on paragraphs and list items to prevent dark mode issues */
-	.preview-content :global(p),
-	.preview-content :global(li),
-	.preview-content :global(span) {
-		color: #333 !important;
-	}
-
-	/* Headings inside tables - ensure they still get their proper colors */
+	/* Headings inside tables */
 	.preview-content :global(table h1),
 	.preview-content :global(table h2),
 	.preview-content :global(table h3),
 	.preview-content :global(table h4),
 	.preview-content :global(table h5),
-	.preview-content :global(table h6),
-	.preview-content :global(td h1),
-	.preview-content :global(td h2),
-	.preview-content :global(td h3),
-	.preview-content :global(td h4),
-	.preview-content :global(td h5),
-	.preview-content :global(td h6) {
+	.preview-content :global(table h6) {
 		margin-top: 0;
 		padding-bottom: 0;
 		border-bottom: none;
@@ -525,16 +521,15 @@
 	/* ========== PRINT STYLES ========== */
 	@media print {
 		.preview-container {
-			padding: 0 !important;
-			overflow: visible !important;
-			height: auto !important;
+			padding: 0;
+			overflow: visible;
+			height: auto;
 		}
 
 		.print-layout {
 			width: 100%;
 		}
 
-		/* Repeating header on each page */
 		.print-header {
 			display: table-header-group;
 		}
@@ -548,7 +543,6 @@
 			margin-bottom: 0.5cm;
 		}
 
-		/* Repeating footer on each page */
 		.print-footer {
 			display: table-footer-group;
 		}
@@ -562,10 +556,6 @@
 			margin-top: 0.5cm;
 		}
 
-		/* Fixed position page number - Removed to rely on browser default */
-		/* .print-page-number and pseudo-elements removed as behavior is inconsistent */
-
-		/* Content area */
 		.content-cell {
 			padding: 0;
 		}
@@ -591,26 +581,24 @@
 			break-inside: avoid;
 		}
 
-		/* Mermaid diagrams - ensure they fit on one page */
+		/* Mermaid diagrams - key print styles */
 		.preview-content :global(.mermaid) {
-			page-break-inside: avoid !important;
-			break-inside: avoid !important;
-			page-break-before: auto;
-			page-break-after: auto;
-			overflow: visible !important;
-			display: flex !important;
-			justify-content: center !important;
+			page-break-inside: avoid;
+			break-inside: avoid;
+			display: block;
+			text-align: center;
+			margin: 1rem auto;
+			-webkit-print-color-adjust: exact;
+			print-color-adjust: exact;
 		}
 
 		.preview-content :global(.mermaid svg) {
-			/* Remove max constraints to allow full width as requested */
-			width: 100% !important;
-			max-width: 100% !important;
-			height: auto !important;
+			display: block;
+			margin: 0 auto;
 		}
 	}
 
-	/* Utility classes for positioning */
+	/* Utility classes */
 	.justify-start {
 		justify-content: flex-start;
 	}
