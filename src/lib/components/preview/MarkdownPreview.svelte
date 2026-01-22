@@ -369,29 +369,45 @@
 		padding-right: 0;
 	}
 
-	/* Code blocks - always LTR */
+	/* Code blocks - always LTR with syntax highlighting */
 	.preview-content :global(pre) {
 		direction: ltr;
 		text-align: left;
-		background-color: #f8f8f8;
-		color: #333;
-		border: 1px solid #ddd;
-		border-radius: 4px;
+		background-color: #f6f8fa;
+		border: 1px solid #e1e4e8;
+		border-radius: 6px;
 		padding: 1rem;
+		overflow-x: auto;
+		font-size: 0.9em;
+		line-height: 1.5;
 	}
 
 	.preview-content :global(code) {
 		direction: ltr;
 		text-align: left;
-		background-color: #f5f5f5;
-		color: #333;
-		padding: 0.2em 0.4em;
-		border-radius: 3px;
-		font-family: 'Courier New', monospace;
+		font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', 'Menlo', monospace;
+		font-size: 0.9em;
 	}
 
+	/* Inline code (not in pre block) */
+	.preview-content :global(:not(pre) > code) {
+		background-color: rgba(175, 184, 193, 0.2);
+		padding: 0.2em 0.4em;
+		border-radius: 4px;
+		color: #1f2328;
+	}
+
+	/* Code block styling - let highlight.js handle colors */
 	.preview-content :global(pre code) {
 		background-color: transparent;
+		padding: 0;
+		color: inherit;
+		font-size: inherit;
+	}
+
+	/* Ensure highlight.js colors are visible */
+	.preview-content :global(pre code.hljs) {
+		background: transparent;
 		padding: 0;
 	}
 

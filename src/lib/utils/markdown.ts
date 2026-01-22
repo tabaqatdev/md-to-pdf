@@ -1,10 +1,32 @@
 import MarkdownIt from 'markdown-it';
+import hljs from 'highlight.js';
 
-// Initialize markdown-it with source mapping enabled
+// Initialize markdown-it with syntax highlighting
 const md = new MarkdownIt({
 	html: true,
 	breaks: true,
-	linkify: true
+	linkify: true,
+	highlight: function (str, lang) {
+		// Skip mermaid blocks - they're handled separately
+		if (lang === 'mermaid') {
+			return '';
+		}
+
+		if (lang && hljs.getLanguage(lang)) {
+			try {
+				return hljs.highlight(str, { language: lang, ignoreIllegals: true }).value;
+			} catch {
+				// Fall through to auto-detection
+			}
+		}
+
+		// Auto-detect language if not specified or not recognized
+		try {
+			return hljs.highlightAuto(str).value;
+		} catch {
+			return ''; // Return empty to use default escaping
+		}
+	}
 });
 
 /**
@@ -222,10 +244,13 @@ export function generateSettingsCSS(settings: {
     }
     
     /* Apply text color to common elements to ensure override */
-    .preview-content p, 
-    .preview-content li, 
-    .preview-content span,
+    /* Note: Exclude code block spans to allow syntax highlighting colors */
+    .preview-content p,
+    .preview-content li,
     .preview-content td {
+        color: ${textColor} !important;
+    }
+    .preview-content span:not([class*="hljs"]) {
         color: ${textColor} !important;
     }
 
