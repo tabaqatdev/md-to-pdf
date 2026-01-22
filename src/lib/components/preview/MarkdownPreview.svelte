@@ -138,9 +138,7 @@
 					useMaxWidth: true
 				},
 				mindmap: {
-					useMaxWidth: true,
-					padding: 16,
-					maxNodeWidth: 250
+					useMaxWidth: true
 				}
 			});
 
@@ -189,9 +187,21 @@
 		svg.removeAttribute('width');
 		svg.removeAttribute('height');
 
-		// Apply font styles
+		// Apply font styles to SVG root
 		svg.style.fontFamily = fontFamily;
 		svg.style.fontSize = `${fontSize}px`;
+
+		// Apply font styles to all text elements (for mindmaps and other diagrams)
+		svg.querySelectorAll('text, tspan').forEach((el) => {
+			(el as SVGElement).style.fontFamily = fontFamily;
+			(el as SVGElement).style.fontSize = `${fontSize}px`;
+		});
+
+		// Apply to foreignObject content (used by some diagram types)
+		svg.querySelectorAll('foreignObject div, foreignObject span, foreignObject p').forEach((el) => {
+			(el as HTMLElement).style.fontFamily = fontFamily;
+			(el as HTMLElement).style.fontSize = `${fontSize}px`;
+		});
 	}
 
 	onMount(async () => {
@@ -452,22 +462,6 @@
 	.preview-content :global(.mermaid svg .sectionTitle) {
 		font-size: 12px;
 		font-weight: bold;
-	}
-
-	/* Mindmap text sizing - ensure readable text */
-	.preview-content :global(.mermaid svg .mindmap-node text),
-	.preview-content :global(.mermaid svg .node text),
-	.preview-content :global(.mermaid svg text.nodeLabel),
-	.preview-content :global(.mermaid svg foreignObject div) {
-		font-size: 16px !important;
-		font-weight: 500;
-	}
-
-	/* Root node (center) should be larger */
-	.preview-content :global(.mermaid svg .mindmap-node.section-root text),
-	.preview-content :global(.mermaid svg .node.default.root text) {
-		font-size: 20px !important;
-		font-weight: 600;
 	}
 
 	/* Table styles */
