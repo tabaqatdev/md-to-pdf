@@ -136,6 +136,11 @@
 				},
 				flowchart: {
 					useMaxWidth: true
+				},
+				mindmap: {
+					useMaxWidth: true,
+					padding: 16,
+					maxNodeWidth: 250
 				}
 			});
 
@@ -447,6 +452,22 @@
 	.preview-content :global(.mermaid svg .sectionTitle) {
 		font-size: 12px;
 		font-weight: bold;
+	}
+
+	/* Mindmap text sizing - ensure readable text */
+	.preview-content :global(.mermaid svg .mindmap-node text),
+	.preview-content :global(.mermaid svg .node text),
+	.preview-content :global(.mermaid svg text.nodeLabel),
+	.preview-content :global(.mermaid svg foreignObject div) {
+		font-size: 16px !important;
+		font-weight: 500;
+	}
+
+	/* Root node (center) should be larger */
+	.preview-content :global(.mermaid svg .mindmap-node.section-root text),
+	.preview-content :global(.mermaid svg .node.default.root text) {
+		font-size: 20px !important;
+		font-weight: 600;
 	}
 
 	/* Table styles */
